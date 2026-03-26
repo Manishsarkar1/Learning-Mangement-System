@@ -121,6 +121,7 @@ Landing page:
 
 - `GET /` → Learnly landing page
 - `GET /signin.html`, `GET /signup.html` → placeholder pages
+- `GET /app.html` → simple demo app UI (courses/quizzes)
 
 ## API
 
