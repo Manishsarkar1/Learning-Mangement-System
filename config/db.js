@@ -50,6 +50,9 @@ function createSwitchableDb() {
     get _driver() {
       return driver;
     },
+    get _filePath() {
+      return activeDb && activeDb._filePath ? activeDb._filePath : null;
+    },
     query(sql, params, cb) {
       return activeDb.query(sql, params, cb);
     },
