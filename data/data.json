@@ -1,0 +1,17 @@
+{
+  "users": [],
+  "courses": [],
+  "enrollments": [],
+  "quizzes": [],
+  "quiz_questions": [],
+  "_meta": {
+    "nextId": {
+      "users": 1,
+      "courses": 1,
+      "enrollments": 1,
+      "quizzes": 1,
+      "quiz_questions": 1
+    }
+  }
+}
+

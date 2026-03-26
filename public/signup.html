@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Learnly — Get started</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        margin: 0;
+        padding: 48px;
+        background: #0a0a0b;
+        color: #f0efe8;
+      }
+      a { color: #c8f135; text-decoration: none; }
+      .card {
+        max-width: 520px;
+        margin: 0 auto;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 24px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .muted { color: rgba(240, 239, 232, 0.7); line-height: 1.6; }
+      code { color: #e8c87a; }
+      label { display: block; margin: 14px 0 6px; color: rgba(240, 239, 232, 0.85); font-size: 13px; }
+      input, select {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+        color: #f0efe8;
+        outline: none;
+      }
+      button {
+        width: 100%;
+        margin-top: 16px;
+        padding: 11px 14px;
+        border: none;
+        border-radius: 10px;
+        background: #c8f135;
+        color: #0a0a0b;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button:disabled { opacity: 0.6; cursor: not-allowed; }
+      #status { margin-top: 14px; font-size: 13px; line-height: 1.5; }
+      #status[data-type="error"] { color: #ff8b8b; }
+      #status[data-type="ok"] { color: #c8f135; }
+      .row { display: flex; gap: 10px; }
+      .row > div { flex: 1; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1 style="margin: 0 0 12px">Get started</h1>
+      <p class="muted" style="margin: 0 0 18px">
+        Create an account. This posts to <code>POST /api/auth/register</code> on this server.
+      </p>
+
+      <form id="signup-form">
+        <label for="name">Name</label>
+        <input id="name" name="name" autocomplete="name" required />
+
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email" required />
+
+        <div class="row">
+          <div>
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="new-password" required />
+          </div>
+          <div>
+            <label for="role">Role</label>
+            <select id="role" name="role" required>
+              <option value="student" selected>student</option>
+              <option value="instructor">instructor</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="submit" type="submit">Create account</button>
+        <div id="status" class="muted" aria-live="polite"></div>
+      </form>
+
+      <p class="muted" style="margin: 16px 0 0">
+        Already have an account? <a href="/signin.html">Sign in</a>
+      </p>
+      <p style="margin: 16px 0 0"><a href="/">← Back to home</a></p>
+    </div>
+
+    <script src="/auth.js"></script>
+    <script>
+      const { $, setStatus, apiPostJson } = window.LearnlyAuth;
+
+      $("#signup-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        setStatus("", "");
+
+        const submit = $("#submit");
+        submit.disabled = true;
+        submit.textContent = "Creating…";
+
+        const payload = {
+          name: $("#name").value.trim(),
+          email: $("#email").value.trim().toLowerCase(),
+          password: $("#password").value,
+          role: $("#role").value,
+        };
+
+        try {
+          await apiPostJson("/api/auth/register", payload);
+          setStatus("Account created. Redirecting to sign in…", "ok");
+          setTimeout(() => {
+            window.location.href = "/signin.html";
+          }, 700);
+        } catch (err) {
+          setStatus(err.message || "Signup failed", "error");
+        } finally {
+          submit.disabled = false;
+          submit.textContent = "Create account";
+        }
+      });
+    </script>
+  </body>
+</html>
