@@ -1,12 +1,20 @@
 {
-  "users": [],
+  "users": [
+    {
+      "id": 1,
+      "name": "Demo",
+      "email": "demo@example.com",
+      "password": "$2b$10$0u9pPQ/9qYm2g4Bzu6Axku9BiyKLHYwDjHmuTTE5VhZl6BAU.3h.u",
+      "role": "student"
+    }
+  ],
   "courses": [],
   "enrollments": [],
   "quizzes": [],
   "quiz_questions": [],
   "_meta": {
     "nextId": {
-      "users": 1,
+      "users": 2,
       "courses": 1,
       "enrollments": 1,
       "quizzes": 1,
@@ -14,4 +22,3 @@
     }
   }
 }
-
