@@ -12,6 +12,7 @@ const submissionRoutes = require("./routes/submissionRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const quizRoutes = require("./routes/quizRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use("/api/submissions", submissionRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/quizzes", quizRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
