@@ -1,4 +1,4 @@
-# Learnly LMS (Node.js + Express + MongoDB + JWT)
+# Learnly LMS (Node.js + Express + MySQL + JWT)
 
 Full-fledged LMS web app with role-based dashboards for **Student**, **Instructor**, and **Admin**.
 
@@ -13,7 +13,7 @@ The existing **Landing page** and **Login page** UI are treated as **read-only**
 
 - Frontend: HTML/CSS/JS (static pages under `frontend/public/`)
 - Backend: Node.js + Express (`backend/`)
-- Database: MongoDB (Mongoose)
+- Database: MySQL (`mysql2`)
 - Auth: JWT + bcrypt
 
 ## Project structure
@@ -23,9 +23,9 @@ frontend/
   public/                 # all static pages (landing/login + dashboards)
 backend/
   app.js                  # express app
-  server.js               # boot + Mongo connection
+  server.js               # boot + MySQL connection
   config/
-    db.js                 # Mongo connect
+    db.js                 # MySQL pool
   controllers/
   middleware/
   models/
@@ -44,12 +44,14 @@ uploads/
 npm install
 ```
 
+If PowerShell blocks `npm` scripts on your machine, use `npm.cmd` instead (example: `npm.cmd install`).
+
 ### 2) Configure env
 
 Create `.env` (or copy `.env.example`) and set:
 
-- `MONGO_URI`
 - `JWT_SECRET`
+- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
 
 Example:
 
@@ -57,9 +59,13 @@ Example:
 cp .env.example .env
 ```
 
-### 3) Start MongoDB
+### 3) Start MySQL + create DB
 
-Ensure MongoDB is running and reachable via `MONGO_URI`.
+Ensure MySQL is running and create a database (example):
+
+```sql
+CREATE DATABASE learnly_lms CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
 
 ### 4) Seed sample data (recommended)
 
@@ -67,7 +73,7 @@ Ensure MongoDB is running and reachable via `MONGO_URI`.
 npm run seed
 ```
 
-To wipe collections first:
+To wipe tables first:
 
 ```bash
 SEED_DROP=1 npm run seed
@@ -91,18 +97,18 @@ Open:
 - Sign in: `http://localhost:5000/signin.html`
 - Role dashboard redirect: `http://localhost:5000/dashboard.html`
 
-## Database schema (collections)
+## Database schema (tables)
 
 - `users`
-  - `name`, `email (unique)`, `passwordHash`, `role: student|instructor|admin`
 - `courses`
-  - `title`, `description`, `instructor (User)`, `students (User[])`, `materials[] {type,title,url,uploadedBy}`
+- `enrollments`
+- `course_materials`
 - `assignments`
-  - `course (Course)`, `title`, `description`, `dueDate`, `createdBy (User)`
-- `submissions`
-  - `assignment (Assignment)`, `course (Course)`, `student (User)`, `text`, `file {originalName,mimeType,size,path}`, `grade {score,feedback,gradedBy,gradedAt}`
-- `notifications`
-  - `user (User)`, `type`, `message`, `meta`, `readAt`
+- `submissions` (includes file + grade fields)
+- `notifications` (includes `meta` JSON)
+- `quizzes`, `quiz_questions`
+
+Schema file: `backend/scripts/schema.mysql.sql`
 
 ## API (REST)
 
@@ -167,4 +173,3 @@ Back-compat for the existing demo UI:
 
 - For production, set strong `JWT_SECRET`, use HTTPS, and restrict CORS.
 - File uploads are stored in `uploads/submissions/` and served via `GET /uploads/...`.
-

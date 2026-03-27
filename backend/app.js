@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 
 const { notFound, errorHandler } = require("./middleware/errorHandler");
+const db = require("./config/db");
 
 const authRoutes = require("./routes/authRoutes");
 const courseRoutes = require("./routes/courseRoutes");
@@ -23,9 +24,7 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
 app.get("/health", (req, res) => res.send("OK"));
 app.get("/health/db", (req, res) => {
-  const mongoose = require("mongoose");
-  const readyState = mongoose.connection ? mongoose.connection.readyState : 0;
-  res.json({ driver: "mongo", connected: readyState === 1 });
+  res.json({ driver: db.driver, connected: Boolean(db.connected), database: db.config.database });
 });
 
 app.use("/api/auth", authRoutes);

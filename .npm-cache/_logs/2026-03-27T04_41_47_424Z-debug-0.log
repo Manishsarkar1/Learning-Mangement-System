@@ -1,0 +1,89 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.11.0
+2 info using node@v24.14.1
+3 silly config load:file:C:\Program Files\nodejs\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\sarka\Downloads\lms-project\.npmrc
+5 silly config load:file:C:\Users\sarka\.npmrc
+6 silly config load:file:C:\Users\sarka\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm install
+8 verbose argv "install" "--cache" ".npm-cache" "--no-audit" "--no-fund"
+9 verbose logfile logs-max:10 dir:C:\Users\sarka\Downloads\lms-project\.npm-cache\_logs\2026-03-27T04_41_47_424Z-
+10 verbose logfile C:\Users\sarka\Downloads\lms-project\.npm-cache\_logs\2026-03-27T04_41_47_424Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4496293888 maxSize:1124073472 maxEntrySize:562036736
+13 silly idealTree buildDeps
+14 silly reify mark retired [
+14 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\@mongodb-js\\saslprep'
+14 silly reify ]
+15 silly reify mark retired [
+15 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\@types\\webidl-conversions'
+15 silly reify ]
+16 silly reify mark retired [
+16 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\@types\\whatwg-url'
+16 silly reify ]
+17 silly reify mark retired [ 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\bson' ]
+18 silly reify mark retired [ 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\kareem' ]
+19 silly reify mark retired [
+19 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\memory-pager'
+19 silly reify ]
+20 silly reify mark retired [ 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\mongodb' ]
+21 silly reify mark retired [
+21 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\mongodb-connection-string-url'
+21 silly reify ]
+22 silly reify mark retired [ 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\mongoose' ]
+23 silly reify mark retired [ 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\mpath' ]
+24 silly reify mark retired [ 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\mquery' ]
+25 silly reify mark retired [ 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\punycode' ]
+26 silly reify mark retired [ 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\sift' ]
+27 silly reify mark retired [
+27 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\sparse-bitfield'
+27 silly reify ]
+28 silly reify mark retired [ 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\tr46' ]
+29 silly reify mark retired [
+29 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\webidl-conversions'
+29 silly reify ]
+30 silly reify mark retired [
+30 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\whatwg-url'
+30 silly reify ]
+31 silly reify moves {
+31 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\@mongodb-js\\saslprep': 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\@mongodb-js\\.saslprep-zI6IYkSl',
+31 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\@types\\webidl-conversions': 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\@types\\.webidl-conversions-yralIuVL',
+31 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\@types\\whatwg-url': 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\@types\\.whatwg-url-HqzYQPJW',
+31 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\bson': 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\.bson-RfUy0mvR',
+31 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\kareem': 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\.kareem-3xNgl5p3',
+31 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\memory-pager': 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\.memory-pager-oAaEtyJI',
+31 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\mongodb': 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\.mongodb-eEl9XCEQ',
+31 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\mongodb-connection-string-url': 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\.mongodb-connection-string-url-QRdkOw8j',
+31 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\mongoose': 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\.mongoose-LejwN7wm',
+31 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\mpath': 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\.mpath-DfZXeBx8',
+31 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\mquery': 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\.mquery-CSJOMqxJ',
+31 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\punycode': 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\.punycode-Y6VoKz5c',
+31 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\sift': 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\.sift-fq24cOno',
+31 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\sparse-bitfield': 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\.sparse-bitfield-cFSgtydq',
+31 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\tr46': 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\.tr46-tD6VftQw',
+31 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\webidl-conversions': 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\.webidl-conversions-UWzDLEq5',
+31 silly reify   'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\whatwg-url': 'C:\\Users\\sarka\\Downloads\\lms-project\\node_modules\\.whatwg-url-sfxAsXAa'
+31 silly reify }
+32 silly REMOVE node_modules/whatwg-url
+33 silly REMOVE node_modules/webidl-conversions
+34 silly REMOVE node_modules/tr46
+35 silly REMOVE node_modules/sparse-bitfield
+36 silly REMOVE node_modules/sift
+37 silly REMOVE node_modules/punycode
+38 silly REMOVE node_modules/mquery
+39 silly REMOVE node_modules/mpath
+40 silly REMOVE node_modules/mongoose
+41 silly REMOVE node_modules/mongodb-connection-string-url
+42 silly REMOVE node_modules/mongodb
+43 silly REMOVE node_modules/memory-pager
+44 silly REMOVE node_modules/kareem
+45 silly REMOVE node_modules/bson
+46 silly REMOVE node_modules/@types/whatwg-url
+47 silly REMOVE node_modules/@types/webidl-conversions
+48 silly REMOVE node_modules/@mongodb-js/saslprep
+49 verbose cwd C:\Users\sarka\Downloads\lms-project
+50 verbose os Windows_NT 10.0.26200
+51 verbose node v24.14.1
+52 verbose npm  v11.11.0
+53 verbose exit 0
+54 info ok

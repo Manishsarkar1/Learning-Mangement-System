@@ -1,19 +1,20 @@
-const mongoose = require("mongoose");
-const { Quiz } = require("../models/Quiz");
+const db = require("../config/db");
+const { toId } = require("./courseController");
 
 async function createQuiz(req, res) {
-  const courseId = String(req.body && req.body.course_id ? req.body.course_id : "");
+  const courseId = toId(req.body && req.body.course_id);
   const title = String(req.body && req.body.title ? req.body.title : "").trim();
-  if (!mongoose.isValidObjectId(courseId)) return res.status(400).json({ message: "Invalid course_id" });
+
+  if (!courseId) return res.status(400).json({ message: "Invalid course_id" });
   if (!title) return res.status(400).json({ message: "Title is required" });
 
-  const quiz = await Quiz.create({ course: courseId, title, questions: [] });
-  return res.status(201).json({ message: "Quiz created", quiz: { id: String(quiz._id) } });
+  const result = await db.exec("INSERT INTO quizzes (course_id, title) VALUES (?, ?)", [courseId, title]);
+  return res.status(201).json({ message: "Quiz created", quiz: { id: String(result.insertId) } });
 }
 
 async function addQuestion(req, res) {
-  const quizId = String(req.body && req.body.quiz_id ? req.body.quiz_id : "");
-  if (!mongoose.isValidObjectId(quizId)) return res.status(400).json({ message: "Invalid quiz_id" });
+  const quizId = toId(req.body && req.body.quiz_id);
+  if (!quizId) return res.status(400).json({ message: "Invalid quiz_id" });
 
   const question = String(req.body && req.body.question ? req.body.question : "").trim();
   const a = String(req.body && req.body.a ? req.body.a : "").trim();
@@ -25,31 +26,37 @@ async function addQuestion(req, res) {
   if (!question || !a || !b || !c || !d) return res.status(400).json({ message: "Question and all options are required" });
   if (!["A", "B", "C", "D"].includes(correct)) return res.status(400).json({ message: "correct must be A/B/C/D" });
 
-  const quiz = await Quiz.findById(quizId);
-  if (!quiz) return res.status(404).json({ message: "Quiz not found" });
+  const quizRows = await db.query("SELECT id FROM quizzes WHERE id = ? LIMIT 1", [quizId]);
+  if (!quizRows || quizRows.length === 0) return res.status(404).json({ message: "Quiz not found" });
 
-  quiz.questions.push({ question, optionA: a, optionB: b, optionC: c, optionD: d, correctOption: correct });
-  await quiz.save();
+  await db.exec(
+    "INSERT INTO quiz_questions (quiz_id, question, option_a, option_b, option_c, option_d, correct_option) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    [quizId, question, a, b, c, d, correct]
+  );
   return res.json({ message: "Question added" });
 }
 
 async function getQuiz(req, res) {
-  const id = String(req.params.id || "");
-  if (!mongoose.isValidObjectId(id)) return res.status(400).json({ message: "Invalid quiz id" });
+  const id = toId(req.params.id);
+  if (!id) return res.status(400).json({ message: "Invalid quiz id" });
 
-  const quiz = await Quiz.findById(id).lean();
-  if (!quiz) return res.status(404).json({ message: "Quiz not found" });
+  const quizRows = await db.query("SELECT id FROM quizzes WHERE id = ? LIMIT 1", [id]);
+  if (!quizRows || quizRows.length === 0) return res.status(404).json({ message: "Quiz not found" });
 
-  const rows = Array.isArray(quiz.questions) ? quiz.questions : [];
+  const rows = await db.query(
+    "SELECT id, question, option_a AS a, option_b AS b, option_c AS c, option_d AS d, correct_option AS correct FROM quiz_questions WHERE quiz_id = ? ORDER BY created_at ASC",
+    [id]
+  );
+
   return res.json(
-    rows.map((q) => ({
-      id: String(q._id),
-      question: q.question,
-      option_a: q.optionA,
-      option_b: q.optionB,
-      option_c: q.optionC,
-      option_d: q.optionD,
-      correct_option: q.correctOption,
+    (rows || []).map((r) => ({
+      id: String(r.id),
+      question: r.question,
+      option_a: r.a,
+      option_b: r.b,
+      option_c: r.c,
+      option_d: r.d,
+      correct_option: r.correct,
     }))
   );
 }

@@ -1,31 +1,58 @@
-const mongoose = require("mongoose");
+const db = require("../config/db");
 
-const { Course } = require("../models/Course");
-const { User } = require("../models/User");
-
-function toCourseDto(course) {
-  return {
-    id: String(course._id),
-    title: course.title,
-    description: course.description,
-    instructorId: course.instructor ? String(course.instructor._id || course.instructor) : null,
-    instructorName: course.instructor && course.instructor.name ? course.instructor.name : undefined,
-    studentCount: Array.isArray(course.students) ? course.students.length : 0,
-    createdAt: course.createdAt,
-    updatedAt: course.updatedAt,
-  };
+function toId(value) {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n <= 0) return null;
+  return n;
 }
 
 async function listCourses(req, res) {
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
-  const filter = q ? { $text: { $search: q } } : {};
-  const rows = await Course.find(filter)
-    .sort({ createdAt: -1 })
-    .limit(100)
-    .populate("instructor", "name")
-    .lean();
+  const limit = 100;
 
-  return res.json(rows.map(toCourseDto));
+  let rows;
+  if (q) {
+    rows = await db.query(
+      `
+      SELECT
+        c.id,
+        c.title,
+        c.description,
+        c.instructor_id AS instructorId,
+        u.name AS instructorName,
+        (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS studentCount,
+        c.created_at AS createdAt,
+        c.updated_at AS updatedAt
+      FROM courses c
+      JOIN users u ON u.id = c.instructor_id
+      WHERE c.title LIKE CONCAT('%', ?, '%') OR c.description LIKE CONCAT('%', ?, '%')
+      ORDER BY c.created_at DESC
+      LIMIT ?
+    `,
+      [q, q, limit]
+    );
+  } else {
+    rows = await db.query(
+      `
+      SELECT
+        c.id,
+        c.title,
+        c.description,
+        c.instructor_id AS instructorId,
+        u.name AS instructorName,
+        (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS studentCount,
+        c.created_at AS createdAt,
+        c.updated_at AS updatedAt
+      FROM courses c
+      JOIN users u ON u.id = c.instructor_id
+      ORDER BY c.created_at DESC
+      LIMIT ?
+    `,
+      [limit]
+    );
+  }
+
+  return res.json(rows || []);
 }
 
 async function createCourse(req, res) {
@@ -34,86 +61,174 @@ async function createCourse(req, res) {
   if (!title) return res.status(400).json({ message: "Title is required" });
   if (!description) return res.status(400).json({ message: "Description is required" });
 
-  const instructor = await User.findById(req.user.id).lean();
-  if (!instructor) return res.status(404).json({ message: "User not found" });
+  const instructorId = toId(req.user.id);
+  if (!instructorId) return res.status(400).json({ message: "Invalid user id" });
 
-  const course = await Course.create({ title, description, instructor: instructor._id, students: [], materials: [] });
-  return res.status(201).json({ message: "Course created", course: { id: String(course._id) } });
+  const result = await db.exec("INSERT INTO courses (title, description, instructor_id) VALUES (?, ?, ?)", [
+    title,
+    description,
+    instructorId,
+  ]);
+  return res.status(201).json({ message: "Course created", course: { id: String(result.insertId) } });
 }
 
 async function enroll(req, res) {
-  const courseId = req.params.courseId ? String(req.params.courseId) : null;
-  if (!mongoose.isValidObjectId(courseId)) return res.status(400).json({ message: "Invalid courseId" });
+  const courseId = toId(req.params.courseId);
+  if (!courseId) return res.status(400).json({ message: "Invalid courseId" });
 
-  const course = await Course.findById(courseId);
-  if (!course) return res.status(404).json({ message: "Course not found" });
+  const studentId = toId(req.user.id);
+  if (!studentId) return res.status(400).json({ message: "Invalid user id" });
 
-  const studentId = req.user.id;
-  const already = course.students.some((id) => String(id) === String(studentId));
-  if (!already) course.students.push(studentId);
-  await course.save();
+  try {
+    await db.exec("INSERT INTO enrollments (course_id, student_id) VALUES (?, ?)", [courseId, studentId]);
+  } catch (e) {
+    if (!(e && e.code === "ER_DUP_ENTRY")) throw e;
+  }
 
-  return res.json({ message: "Enrolled", course: { id: String(course._id) } });
+  return res.json({ message: "Enrolled", course: { id: String(courseId) } });
 }
 
 async function enrollLegacy(req, res) {
-  const courseId = req.body && req.body.course_id ? String(req.body.course_id) : "";
+  const courseId = toId(req.body && req.body.course_id);
   req.params.courseId = courseId;
   return enroll(req, res);
 }
 
 async function myCourses(req, res) {
+  const userId = toId(req.user.id);
+  if (!userId) return res.status(400).json({ message: "Invalid user id" });
+
   if (req.user.role === "student") {
-    const rows = await Course.find({ students: req.user.id }).populate("instructor", "name").lean();
-    return res.json(rows.map(toCourseDto));
+    const rows = await db.query(
+      `
+      SELECT
+        c.id,
+        c.title,
+        c.description,
+        c.instructor_id AS instructorId,
+        u.name AS instructorName,
+        (SELECT COUNT(*) FROM enrollments e2 WHERE e2.course_id = c.id) AS studentCount,
+        c.created_at AS createdAt,
+        c.updated_at AS updatedAt
+      FROM enrollments e
+      JOIN courses c ON c.id = e.course_id
+      JOIN users u ON u.id = c.instructor_id
+      WHERE e.student_id = ?
+      ORDER BY c.created_at DESC
+    `,
+      [userId]
+    );
+    return res.json(rows || []);
   }
 
   if (req.user.role === "instructor") {
-    const rows = await Course.find({ instructor: req.user.id }).populate("instructor", "name").lean();
-    return res.json(rows.map(toCourseDto));
+    const rows = await db.query(
+      `
+      SELECT
+        c.id,
+        c.title,
+        c.description,
+        c.instructor_id AS instructorId,
+        u.name AS instructorName,
+        (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS studentCount,
+        c.created_at AS createdAt,
+        c.updated_at AS updatedAt
+      FROM courses c
+      JOIN users u ON u.id = c.instructor_id
+      WHERE c.instructor_id = ?
+      ORDER BY c.created_at DESC
+    `,
+      [userId]
+    );
+    return res.json(rows || []);
   }
 
-  const rows = await Course.find({}).populate("instructor", "name").lean();
-  return res.json(rows.map(toCourseDto));
+  // admin
+  const rows = await db.query(
+    `
+    SELECT
+      c.id,
+      c.title,
+      c.description,
+      c.instructor_id AS instructorId,
+      u.name AS instructorName,
+      (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS studentCount,
+      c.created_at AS createdAt,
+      c.updated_at AS updatedAt
+    FROM courses c
+    JOIN users u ON u.id = c.instructor_id
+    ORDER BY c.created_at DESC
+  `
+  );
+  return res.json(rows || []);
 }
 
 async function getCourse(req, res) {
-  const courseId = String(req.params.id || "");
-  if (!mongoose.isValidObjectId(courseId)) return res.status(400).json({ message: "Invalid courseId" });
+  const courseId = toId(req.params.id);
+  if (!courseId) return res.status(400).json({ message: "Invalid courseId" });
 
-  const course = await Course.findById(courseId).populate("instructor", "name email role").lean();
-  if (!course) return res.status(404).json({ message: "Course not found" });
+  const rows = await db.query(
+    `
+    SELECT
+      c.id,
+      c.title,
+      c.description,
+      c.instructor_id AS instructorId,
+      u.name AS instructorName,
+      u.email AS instructorEmail,
+      (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS studentCount,
+      c.created_at AS createdAt,
+      c.updated_at AS updatedAt
+    FROM courses c
+    JOIN users u ON u.id = c.instructor_id
+    WHERE c.id = ?
+    LIMIT 1
+  `,
+    [courseId]
+  );
 
-  const isAdmin = req.user && req.user.role === "admin";
-  const isInstructorOwner = req.user && req.user.role === "instructor" && String(course.instructor._id) === String(req.user.id);
-  const isEnrolled = req.user && req.user.role === "student" && (course.students || []).some((id) => String(id) === String(req.user.id));
+  if (!rows || rows.length === 0) return res.status(404).json({ message: "Course not found" });
+  const course = rows[0];
+
+  const userId = toId(req.user.id);
+  const isAdmin = req.user.role === "admin";
+  const isOwner = req.user.role === "instructor" && Number(course.instructorId) === userId;
+  const enrolledRows = await db.query("SELECT 1 AS ok FROM enrollments WHERE course_id = ? AND student_id = ? LIMIT 1", [
+    courseId,
+    userId,
+  ]);
+  const isEnrolled = req.user.role === "student" && enrolledRows && enrolledRows.length > 0;
 
   const base = {
-    id: String(course._id),
+    id: String(course.id),
     title: course.title,
     description: course.description,
-    instructor: course.instructor
-      ? { id: String(course.instructor._id), name: course.instructor.name, email: course.instructor.email }
-      : null,
+    instructor: { id: String(course.instructorId), name: course.instructorName, email: course.instructorEmail },
+    studentCount: Number(course.studentCount) || 0,
     createdAt: course.createdAt,
     updatedAt: course.updatedAt,
   };
 
-  if (!isAdmin && !isInstructorOwner && !isEnrolled) {
-    return res.json({ ...base, materials: [], studentCount: (course.students || []).length });
+  if (!isAdmin && !isOwner && !isEnrolled) {
+    return res.json({ ...base, materials: [] });
   }
 
-  return res.json({
-    ...base,
-    materials: course.materials || [],
-    students: isAdmin || isInstructorOwner ? course.students || [] : undefined,
-    studentCount: (course.students || []).length,
-  });
+  const materials = await db.query(
+    "SELECT type, title, url, uploaded_by AS uploadedBy, created_at AS createdAt FROM course_materials WHERE course_id = ? ORDER BY created_at DESC",
+    [courseId]
+  );
+
+  let students = undefined;
+  if (isAdmin || isOwner) {
+    students = await db.query("SELECT student_id AS id FROM enrollments WHERE course_id = ? ORDER BY created_at DESC", [courseId]);
+  }
+
+  return res.json({ ...base, materials: materials || [], students });
 }
 
 async function addMaterial(req, res) {
-  const courseId = String(req.params.courseId || "");
-  if (!mongoose.isValidObjectId(courseId)) return res.status(400).json({ message: "Invalid courseId" });
+  const courseId = toId(req.params.courseId);
+  if (!courseId) return res.status(400).json({ message: "Invalid courseId" });
 
   const type = String(req.body && req.body.type ? req.body.type : "").trim().toLowerCase();
   const title = String(req.body && req.body.title ? req.body.title : "").trim();
@@ -123,15 +238,21 @@ async function addMaterial(req, res) {
   if (!title) return res.status(400).json({ message: "Title is required" });
   if (!url) return res.status(400).json({ message: "URL is required" });
 
-  const course = await Course.findById(courseId);
-  if (!course) return res.status(404).json({ message: "Course not found" });
+  const userId = toId(req.user.id);
+  const courseRows = await db.query("SELECT instructor_id AS instructorId FROM courses WHERE id = ? LIMIT 1", [courseId]);
+  if (!courseRows || courseRows.length === 0) return res.status(404).json({ message: "Course not found" });
 
   const isAdmin = req.user.role === "admin";
-  const isOwner = String(course.instructor) === String(req.user.id);
+  const isOwner = req.user.role === "instructor" && Number(courseRows[0].instructorId) === userId;
   if (!isAdmin && !isOwner) return res.status(403).json({ message: "Forbidden" });
 
-  course.materials.push({ type, title, url, uploadedBy: req.user.id });
-  await course.save();
+  await db.exec("INSERT INTO course_materials (course_id, type, title, url, uploaded_by) VALUES (?, ?, ?, ?, ?)", [
+    courseId,
+    type,
+    title,
+    url,
+    userId,
+  ]);
   return res.status(201).json({ message: "Material added" });
 }
 
@@ -143,5 +264,6 @@ module.exports = {
   myCourses,
   getCourse,
   addMaterial,
+  toId,
 };
 

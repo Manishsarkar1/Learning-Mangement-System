@@ -1,149 +1,230 @@
-const mongoose = require("mongoose");
-
-const { Submission } = require("../models/Submission");
-const { Assignment } = require("../models/Assignment");
-const { Course } = require("../models/Course");
-const { Notification } = require("../models/Notification");
+const db = require("../config/db");
+const { toId } = require("./courseController");
 
 async function loadAssignmentAndCourse(assignmentId) {
-  const assignment = await Assignment.findById(assignmentId).lean();
-  if (!assignment) {
+  const rows = await db.query(
+    `
+    SELECT
+      a.id AS assignmentId,
+      a.title AS assignmentTitle,
+      a.course_id AS courseId,
+      c.instructor_id AS instructorId
+    FROM assignments a
+    JOIN courses c ON c.id = a.course_id
+    WHERE a.id = ?
+    LIMIT 1
+  `,
+    [assignmentId]
+  );
+  if (!rows || rows.length === 0) {
     const err = new Error("Assignment not found");
     err.status = 404;
     throw err;
   }
-  const course = await Course.findById(assignment.course).lean();
-  if (!course) {
-    const err = new Error("Course not found");
-    err.status = 404;
-    throw err;
-  }
-  return { assignment, course };
+  return rows[0];
 }
 
-function isStudentEnrolled(course, userId) {
-  return (course.students || []).some((id) => String(id) === String(userId));
+async function ensureStudentEnrollment({ courseId, studentId }) {
+  const enr = await db.query("SELECT 1 AS ok FROM enrollments WHERE course_id = ? AND student_id = ? LIMIT 1", [courseId, studentId]);
+  return enr && enr.length > 0;
 }
 
 async function submit(req, res) {
-  const assignmentId = String(req.body && req.body.assignmentId ? req.body.assignmentId : "");
+  const assignmentId = toId(req.body && req.body.assignmentId);
   const text = req.body && typeof req.body.text === "string" ? req.body.text : "";
 
-  if (!mongoose.isValidObjectId(assignmentId)) return res.status(400).json({ message: "Invalid assignmentId" });
+  if (!assignmentId) return res.status(400).json({ message: "Invalid assignmentId" });
   if (!text && !req.file) return res.status(400).json({ message: "Provide text or a file" });
 
-  const { assignment, course } = await loadAssignmentAndCourse(assignmentId);
-  if (!isStudentEnrolled(course, req.user.id) && req.user.role !== "admin") {
-    return res.status(403).json({ message: "You are not enrolled in this course" });
+  const info = await loadAssignmentAndCourse(assignmentId);
+  const studentId = toId(req.user.id);
+
+  if (req.user.role !== "admin") {
+    const ok = await ensureStudentEnrollment({ courseId: Number(info.courseId), studentId });
+    if (!ok) return res.status(403).json({ message: "You are not enrolled in this course" });
   }
 
-  const payload = {
-    assignment: assignment._id,
-    course: course._id,
-    student: req.user.id,
-    text: text ? String(text).slice(0, 20000) : "",
-    submittedAt: new Date(),
-  };
-
-  if (req.file) {
-    payload.file = {
-      originalName: req.file.originalname,
-      mimeType: req.file.mimetype,
-      size: req.file.size,
-      path: `uploads/submissions/${req.file.filename}`,
-    };
-  }
+  const filePath = req.file ? `uploads/submissions/${req.file.filename}` : null;
+  const fileOriginal = req.file ? req.file.originalname : null;
+  const fileMime = req.file ? req.file.mimetype : null;
+  const fileSize = req.file ? req.file.size : null;
 
   try {
-    const row = await Submission.create(payload);
+    const result = await db.exec(
+      `
+      INSERT INTO submissions
+        (assignment_id, course_id, student_id, text, file_original_name, file_mime_type, file_size, file_path, submitted_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(3))
+    `,
+      [
+        assignmentId,
+        info.courseId,
+        studentId,
+        text ? String(text).slice(0, 20000) : null,
+        fileOriginal,
+        fileMime,
+        fileSize,
+        filePath,
+      ]
+    );
 
-    // Notify instructor
-    await Notification.create({
-      user: course.instructor,
-      type: "submission_created",
-      message: `New submission for "${assignment.title}"`,
-      meta: { courseId: String(course._id), assignmentId: String(assignment._id), submissionId: String(row._id) },
-    });
+    await db.exec("INSERT INTO notifications (user_id, type, message, meta) VALUES (?, ?, ?, ?)", [
+      info.instructorId,
+      "submission_created",
+      `New submission for "${info.assignmentTitle}"`,
+      JSON.stringify({ courseId: String(info.courseId), assignmentId: String(info.assignmentId), submissionId: String(result.insertId) }),
+    ]);
 
-    return res.status(201).json({ message: "Submitted", submission: { id: String(row._id) } });
+    return res.status(201).json({ message: "Submitted", submission: { id: String(result.insertId) } });
   } catch (e) {
-    if (e && e.code === 11000) return res.status(409).json({ message: "You already submitted this assignment" });
+    if (e && e.code === "ER_DUP_ENTRY") return res.status(409).json({ message: "You already submitted this assignment" });
     throw e;
   }
 }
 
 async function listByAssignment(req, res) {
-  const assignmentId = String(req.params.assignmentId || "");
-  if (!mongoose.isValidObjectId(assignmentId)) return res.status(400).json({ message: "Invalid assignmentId" });
+  const assignmentId = toId(req.params.assignmentId);
+  if (!assignmentId) return res.status(400).json({ message: "Invalid assignmentId" });
 
-  const { assignment, course } = await loadAssignmentAndCourse(assignmentId);
+  const info = await loadAssignmentAndCourse(assignmentId);
+  const userId = toId(req.user.id);
   const isAdmin = req.user.role === "admin";
-  const isOwner = req.user.role === "instructor" && String(course.instructor) === String(req.user.id);
+  const isOwner = req.user.role === "instructor" && Number(info.instructorId) === userId;
   if (!isAdmin && !isOwner) return res.status(403).json({ message: "Forbidden" });
 
-  const rows = await Submission.find({ assignment: assignmentId })
-    .sort({ submittedAt: -1 })
-    .populate("student", "name email")
-    .lean();
+  const rows = await db.query(
+    `
+    SELECT
+      s.id,
+      s.assignment_id AS assignmentId,
+      s.text,
+      s.file_original_name AS fileOriginalName,
+      s.file_mime_type AS mimeType,
+      s.file_size AS size,
+      s.file_path AS path,
+      s.submitted_at AS submittedAt,
+      s.grade_score AS gradeScore,
+      s.grade_feedback AS gradeFeedback,
+      s.graded_by AS gradedBy,
+      s.graded_at AS gradedAt,
+      u.id AS studentId,
+      u.name AS studentName,
+      u.email AS studentEmail
+    FROM submissions s
+    JOIN users u ON u.id = s.student_id
+    WHERE s.assignment_id = ?
+    ORDER BY s.submitted_at DESC
+  `,
+    [assignmentId]
+  );
 
   return res.json(
-    rows.map((s) => ({
-      id: String(s._id),
-      assignmentId: String(s.assignment),
-      student: s.student ? { id: String(s.student._id), name: s.student.name, email: s.student.email } : null,
-      text: s.text || "",
-      file: s.file || null,
-      submittedAt: s.submittedAt,
-      grade: s.grade || null,
+    (rows || []).map((r) => ({
+      id: String(r.id),
+      assignmentId: String(r.assignmentId),
+      student: { id: String(r.studentId), name: r.studentName, email: r.studentEmail },
+      text: r.text || "",
+      file: r.path
+        ? { originalName: r.fileOriginalName, mimeType: r.mimeType, size: r.size, path: r.path }
+        : null,
+      submittedAt: r.submittedAt,
+      grade:
+        r.gradeScore !== null && r.gradeScore !== undefined
+          ? { score: Number(r.gradeScore), feedback: r.gradeFeedback || "", gradedBy: r.gradedBy, gradedAt: r.gradedAt }
+          : null,
     }))
   );
 }
 
 async function mySubmission(req, res) {
-  const assignmentId = String(req.query.assignmentId || "");
-  if (!mongoose.isValidObjectId(assignmentId)) return res.status(400).json({ message: "Invalid assignmentId" });
+  const assignmentId = toId(req.query.assignmentId);
+  if (!assignmentId) return res.status(400).json({ message: "Invalid assignmentId" });
 
-  const row = await Submission.findOne({ assignment: assignmentId, student: req.user.id }).lean();
-  if (!row) return res.status(404).json({ message: "Submission not found" });
+  const studentId = toId(req.user.id);
+  const rows = await db.query(
+    `
+    SELECT
+      id,
+      assignment_id AS assignmentId,
+      text,
+      file_original_name AS fileOriginalName,
+      file_mime_type AS mimeType,
+      file_size AS size,
+      file_path AS path,
+      submitted_at AS submittedAt,
+      grade_score AS gradeScore,
+      grade_feedback AS gradeFeedback,
+      graded_by AS gradedBy,
+      graded_at AS gradedAt
+    FROM submissions
+    WHERE assignment_id = ? AND student_id = ?
+    LIMIT 1
+  `,
+    [assignmentId, studentId]
+  );
+
+  if (!rows || rows.length === 0) return res.status(404).json({ message: "Submission not found" });
+  const r = rows[0];
   return res.json({
-    id: String(row._id),
-    assignmentId: String(row.assignment),
-    text: row.text || "",
-    file: row.file || null,
-    submittedAt: row.submittedAt,
-    grade: row.grade || null,
+    id: String(r.id),
+    assignmentId: String(r.assignmentId),
+    text: r.text || "",
+    file: r.path ? { originalName: r.fileOriginalName, mimeType: r.mimeType, size: r.size, path: r.path } : null,
+    submittedAt: r.submittedAt,
+    grade:
+      r.gradeScore !== null && r.gradeScore !== undefined
+        ? { score: Number(r.gradeScore), feedback: r.gradeFeedback || "", gradedBy: r.gradedBy, gradedAt: r.gradedAt }
+        : null,
   });
 }
 
 async function grade(req, res) {
-  const id = String(req.params.id || "");
-  if (!mongoose.isValidObjectId(id)) return res.status(400).json({ message: "Invalid submissionId" });
+  const submissionId = toId(req.params.id);
+  if (!submissionId) return res.status(400).json({ message: "Invalid submissionId" });
 
   const score = req.body && req.body.score !== undefined ? Number(req.body.score) : NaN;
   const feedback = req.body && typeof req.body.feedback === "string" ? req.body.feedback : "";
   if (Number.isNaN(score) || score < 0 || score > 100) return res.status(400).json({ message: "Score must be 0-100" });
 
-  const submission = await Submission.findById(id).lean();
-  if (!submission) return res.status(404).json({ message: "Submission not found" });
+  const rows = await db.query(
+    `
+    SELECT
+      s.id AS submissionId,
+      s.student_id AS studentId,
+      s.assignment_id AS assignmentId,
+      a.title AS assignmentTitle,
+      a.course_id AS courseId,
+      c.instructor_id AS instructorId
+    FROM submissions s
+    JOIN assignments a ON a.id = s.assignment_id
+    JOIN courses c ON c.id = a.course_id
+    WHERE s.id = ?
+    LIMIT 1
+  `,
+    [submissionId]
+  );
+  if (!rows || rows.length === 0) return res.status(404).json({ message: "Submission not found" });
 
-  const { assignment, course } = await loadAssignmentAndCourse(String(submission.assignment));
+  const info = rows[0];
+  const userId = toId(req.user.id);
   const isAdmin = req.user.role === "admin";
-  const isOwner = req.user.role === "instructor" && String(course.instructor) === String(req.user.id);
+  const isOwner = req.user.role === "instructor" && Number(info.instructorId) === userId;
   if (!isAdmin && !isOwner) return res.status(403).json({ message: "Forbidden" });
 
-  await Submission.updateOne(
-    { _id: id },
-    { $set: { grade: { score, feedback: String(feedback).slice(0, 5000), gradedBy: req.user.id, gradedAt: new Date() } } }
+  await db.exec(
+    "UPDATE submissions SET grade_score = ?, grade_feedback = ?, graded_by = ?, graded_at = NOW(3) WHERE id = ?",
+    [Math.round(score), String(feedback).slice(0, 5000), userId, submissionId]
   );
 
-  await Notification.create({
-    user: submission.student,
-    type: "grade_posted",
-    message: `Graded: "${assignment.title}" (${score}/100)`,
-    meta: { courseId: String(course._id), assignmentId: String(assignment._id), submissionId: String(id) },
-  });
+  await db.exec("INSERT INTO notifications (user_id, type, message, meta) VALUES (?, ?, ?, ?)", [
+    info.studentId,
+    "grade_posted",
+    `Graded: "${info.assignmentTitle}" (${Math.round(score)}/100)`,
+    JSON.stringify({ courseId: String(info.courseId), assignmentId: String(info.assignmentId), submissionId: String(submissionId) }),
+  ]);
 
   return res.json({ message: "Graded" });
 }
 
 module.exports = { submit, listByAssignment, mySubmission, grade };
+

@@ -1,15 +1,11 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-const { User } = require("../models/User");
+const db = require("../config/db");
 
 function signToken(user) {
   const secret = process.env.JWT_SECRET || "dev_secret_change_me";
-  return jwt.sign({ id: String(user._id), role: user.role }, secret, { expiresIn: "7d" });
-}
-
-function sanitizeUser(user) {
-  return { id: String(user._id), name: user.name, email: user.email, role: user.role, createdAt: user.createdAt };
+  return jwt.sign({ id: String(user.id), role: user.role }, secret, { expiresIn: "7d" });
 }
 
 function isValidEmail(email) {
@@ -27,12 +23,19 @@ async function register(req, res) {
   if (typeof password !== "string" || password.length < 6) return res.status(400).json({ message: "Password must be at least 6 characters" });
   if (!["student", "instructor"].includes(role)) return res.status(400).json({ message: "Role must be student or instructor" });
 
-  const existing = await User.findOne({ email }).lean();
-  if (existing) return res.status(409).json({ message: "Email already in use" });
-
   const passwordHash = await bcrypt.hash(password, 10);
-  const user = await User.create({ name, email, passwordHash, role });
-  return res.status(201).json({ message: "User registered", user: sanitizeUser(user) });
+  try {
+    const result = await db.exec("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)", [
+      name,
+      email,
+      passwordHash,
+      role,
+    ]);
+    return res.status(201).json({ message: "User registered", user: { id: String(result.insertId), name, email, role } });
+  } catch (e) {
+    if (e && e.code === "ER_DUP_ENTRY") return res.status(409).json({ message: "Email already in use" });
+    throw e;
+  }
 }
 
 async function login(req, res) {
@@ -42,20 +45,21 @@ async function login(req, res) {
   if (!isValidEmail(email)) return res.status(400).json({ message: "Valid email is required" });
   if (typeof password !== "string" || !password) return res.status(400).json({ message: "Password is required" });
 
-  const user = await User.findOne({ email });
-  if (!user) return res.status(400).json({ message: "User not found" });
+  const rows = await db.query("SELECT id, email, password_hash, role FROM users WHERE email = ? LIMIT 1", [email]);
+  if (!rows || rows.length === 0) return res.status(400).json({ message: "User not found" });
 
-  const ok = await bcrypt.compare(password, user.passwordHash);
+  const user = rows[0];
+  const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) return res.status(400).json({ message: "Invalid password" });
 
-  const token = signToken(user);
+  const token = signToken({ id: user.id, role: user.role });
   return res.json({ token });
 }
 
 async function me(req, res) {
-  const user = await User.findById(req.user.id).lean();
-  if (!user) return res.status(404).json({ message: "User not found" });
-  return res.json({ user: { id: String(user._id), name: user.name, email: user.email, role: user.role, createdAt: user.createdAt } });
+  const rows = await db.query("SELECT id, name, email, role, created_at AS createdAt FROM users WHERE id = ? LIMIT 1", [req.user.id]);
+  if (!rows || rows.length === 0) return res.status(404).json({ message: "User not found" });
+  return res.json({ user: rows[0] });
 }
 
 module.exports = { register, login, me };
