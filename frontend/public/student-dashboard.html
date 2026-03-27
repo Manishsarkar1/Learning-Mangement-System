@@ -1,597 +1,584 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Learnly - Student Dashboard</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="/dashboard-theme.css" />
-  </head>
-  <body>
-    <div class="role-bar">
-      <span class="role-label">View as:</span>
-      <button class="role-btn active-student" type="button" onclick="window.location.href='/student-dashboard.html'">Student</button>
-      <button class="role-btn" type="button" onclick="window.location.href='/instructor-dashboard.html'">Instructor</button>
-      <button class="role-btn" type="button" onclick="window.location.href='/admin-dashboard.html'">Admin</button>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Learnly — Instructor Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0b;--bg2:#111114;--bg3:#18181c;--bg4:#1e1e24;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#f0efe8;--muted:#9b9a93;--faint:#4a4a4f;
+  --accent:#e8c87a;--accent-dim:rgba(232,200,122,0.12);--accent-dim2:rgba(232,200,122,0.06);
+  --green:#c8f135;--green-dim:rgba(200,241,53,0.1);--green-dim2:rgba(200,241,53,0.05);
+  --blue:rgba(100,160,255,0.9);--blue-dim:rgba(100,160,255,0.1);
+  --purple:rgba(180,130,255,0.9);--purple-dim:rgba(180,130,255,0.1);
+  --red:rgba(255,100,100,0.9);--red-dim:rgba(255,100,100,0.1);
+  --r:12px;--rs:8px;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;-webkit-font-smoothing:antialiased}
+
+.sidebar{width:220px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow-y:auto}
+.sidebar-top{padding:20px 16px;border-bottom:1px solid var(--border)}
+.logo{font-family:'Instrument Serif',serif;font-size:20px;display:flex;align-items:center;gap:6px;color:var(--text);margin-bottom:16px}
+.logo-dot{width:7px;height:7px;background:var(--accent);border-radius:50%;flex-shrink:0}
+.user-card{display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs)}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#e8c87a,#c4952a);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#0a0a0b;flex-shrink:0}
+.user-name{font-size:13px;font-weight:500}
+.user-role{font-size:11px;color:var(--muted)}
+.nav-section{padding:16px 10px 8px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--faint)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--rs);font-size:13px;color:var(--muted);cursor:pointer;transition:all 0.15s;margin:1px 0}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--accent-dim2);color:var(--accent)}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:0.8}
+.nav-badge{margin-left:auto;background:var(--red-dim);color:var(--red);font-size:10px;font-weight:600;padding:2px 7px;border-radius:100px}
+.sidebar-bottom{margin-top:auto;padding:16px;border-top:1px solid var(--border)}
+
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topbar{height:56px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:16px;flex-shrink:0}
+.topbar-title{font-size:15px;font-weight:500;flex:1}
+.btn-new{background:var(--accent);color:#0a0a0b;border:none;padding:8px 18px;border-radius:100px;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:opacity 0.15s;display:flex;align-items:center;gap:6px}
+.btn-new:hover{opacity:0.85}
+.notif-btn{width:34px;height:34px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;position:relative}
+.notif-btn:hover{border-color:var(--border2)}
+.notif-dot{width:7px;height:7px;background:var(--green);border-radius:50%;position:absolute;top:6px;right:6px;border:1.5px solid var(--bg2)}
+
+.content{flex:1;overflow-y:auto;padding:28px}
+.content::-webkit-scrollbar{width:4px}
+.content::-webkit-scrollbar-track{background:transparent}
+.content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.page{display:none}
+.page.active{display:block}
+
+.greeting{margin-bottom:28px}
+.greeting h1{font-family:'Instrument Serif',serif;font-size:32px;letter-spacing:-0.5px;font-weight:400;margin-bottom:4px}
+.greeting h1 em{font-style:italic;color:var(--accent)}
+.greeting p{font-size:14px;color:var(--muted);font-weight:300}
+
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px;transition:border-color 0.2s}
+.stat-card:hover{border-color:var(--border2)}
+.stat-label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.stat-icon{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.stat-val{font-family:'Instrument Serif',serif;font-size:30px;letter-spacing:-1px;line-height:1}
+.stat-delta{font-size:12px;margin-top:6px}
+.delta-up{color:var(--green)}
+.delta-down{color:var(--red)}
+
+.two-col{display:grid;grid-template-columns:1fr 340px;gap:20px;margin-bottom:20px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:500}
+.card-action{font-size:12px;color:var(--accent);cursor:pointer;transition:opacity 0.15s}
+.card-action:hover{opacity:0.7}
+
+/* STUDENT TABLE */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{padding:10px 16px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--faint);border-bottom:1px solid var(--border);font-weight:500}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s;cursor:pointer}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:rgba(255,255,255,0.02)}
+td{padding:12px 16px;font-size:13px}
+td.muted{color:var(--muted)}
+.status-pill{display:inline-flex;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:500}
+.pill-on-track{background:var(--green-dim);color:var(--green)}
+.pill-at-risk{background:var(--red-dim);color:var(--red)}
+.pill-inactive{background:var(--bg4);color:var(--faint)}
+.pill-done{background:var(--accent-dim);color:var(--accent)}
+
+.prog-bg{height:4px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;width:80px}
+.prog-fill{height:100%;border-radius:2px;background:var(--green)}
+.prog-fill-warn{background:var(--accent)}
+.prog-fill-low{background:var(--red)}
+
+/* COURSE CARDS */
+.course-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px}
+.course-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:border-color 0.2s}
+.course-card:hover{border-color:var(--border2)}
+.course-card-banner{height:72px;display:flex;align-items:center;justify-content:center;font-size:32px;position:relative}
+.course-card-body{padding:16px}
+.course-card-title{font-size:14px;font-weight:500;margin-bottom:6px}
+.course-card-meta{font-size:12px;color:var(--muted);margin-bottom:14px}
+.course-card-stats{display:flex;gap:16px}
+.c-stat{text-align:center}
+.c-stat-val{font-size:18px;font-family:'Instrument Serif',serif;color:var(--text)}
+.c-stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px}
+.course-actions{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.btn-xs{padding:6px 14px;border-radius:100px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.15s}
+.btn-xs-gold{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(232,200,122,0.2)}
+.btn-xs-ghost{background:none;border:1px solid var(--border);color:var(--muted)}
+.btn-xs-ghost:hover{border-color:var(--border2);color:var(--text)}
+
+/* QUIZ BUILDER */
+.quiz-builder{display:grid;grid-template-columns:280px 1fr;gap:20px}
+.qb-list{display:flex;flex-direction:column;gap:8px}
+.qb-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;cursor:pointer;transition:all 0.15s}
+.qb-item:hover{border-color:var(--border2)}
+.qb-item.active{border-color:rgba(232,200,122,0.3);background:var(--accent-dim2)}
+.qb-item-name{font-size:13px;font-weight:500;margin-bottom:2px}
+.qb-item-meta{font-size:11px;color:var(--muted)}
+.add-q-btn{width:100%;padding:10px;background:none;border:1px dashed var(--border);color:var(--muted);border-radius:var(--rs);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.15s;margin-top:8px}
+.add-q-btn:hover{border-color:var(--border2);color:var(--text)}
+
+.qb-editor{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:24px}
+.qb-label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:8px}
+.qb-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;font-size:14px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;margin-bottom:16px;transition:border-color 0.15s}
+.qb-input:focus{border-color:var(--border2)}
+.option-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.opt-letter{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);flex-shrink:0}
+.opt-letter.correct{border-color:var(--green);color:var(--green);background:var(--green-dim2)}
+.opt-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:9px 12px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.15s}
+.opt-input:focus{border-color:var(--border2)}
+.opt-check{width:28px;height:28px;background:none;border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all 0.15s;font-size:12px}
+.opt-check.active{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+
+/* ANNOUNCEMENTS */
+.ann-form{padding:20px}
+.ann-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.15s;margin-bottom:10px}
+.ann-input:focus{border-color:var(--border2)}
+textarea.ann-input{resize:none;height:80px;line-height:1.5}
+.ann-form-row{display:flex;gap:10px;align-items:center}
+.select-input{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:9px 12px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;flex:1}
+.btn-send{background:var(--green);color:#0a0a0b;border:none;padding:9px 22px;border-radius:100px;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:opacity 0.15s}
+.btn-send:hover{opacity:0.85}
+.sent-ann{padding:14px 20px;border-top:1px solid var(--border)}
+.sent-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.sent-course{font-size:11px;padding:2px 8px;background:var(--accent-dim);color:var(--accent);border-radius:100px}
+.sent-time{font-size:11px;color:var(--faint)}
+.sent-title{font-size:13px;font-weight:500;margin-bottom:4px}
+.sent-body{font-size:13px;color:var(--muted);line-height:1.5}
+.sent-reach{font-size:11px;color:var(--faint);margin-top:6px}
+
+/* GRADING */
+.grade-row{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--border);transition:background 0.15s;cursor:pointer}
+.grade-row:last-child{border-bottom:none}
+.grade-row:hover{background:rgba(255,255,255,0.02)}
+.grade-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.grade-badge{padding:4px 12px;border-radius:100px;font-size:12px;font-weight:600;min-width:50px;text-align:center}
+.gb-a{background:var(--green-dim);color:var(--green)}
+.gb-b{background:var(--blue-dim);color:var(--blue)}
+.gb-c{background:var(--accent-dim);color:var(--accent)}
+.gb-d{background:var(--red-dim);color:var(--red)}
+
+/* SETTINGS */
+.form-row{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.form-row:last-child{border-bottom:none}
+.form-label{font-size:13px;font-weight:500;margin-bottom:2px}
+.form-hint{font-size:12px;color:var(--muted)}
+.form-input{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:8px 12px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;width:220px}
+.toggle{width:40px;height:22px;background:var(--border2);border-radius:100px;position:relative;cursor:pointer;transition:background 0.2s}
+.toggle.on{background:var(--green)}
+.toggle::after{content:'';width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:transform 0.2s}
+.toggle.on::after{transform:translateX(18px)}
+.btn-save{background:var(--accent);color:#0a0a0b;border:none;padding:9px 22px;border-radius:100px;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer}
+.btn-ghost{background:none;border:1px solid var(--border);color:var(--muted);padding:9px 22px;border-radius:100px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-top">
+    <div class="logo"><span class="logo-dot"></span>Learnly</div>
+    <div class="user-card">
+      <div class="avatar">PN</div>
+      <div>
+        <div class="user-name">Dr. Priya Nair</div>
+        <div class="user-role">Instructor · Pro</div>
+      </div>
     </div>
+  </div>
 
-    <div class="app">
-      <div class="sidebar">
-        <div class="sidebar-head">
-          <a class="logo" href="/"><span class="logo-dot"></span>Learnly</a>
-          <div class="user-chip">
-            <div class="avatar av-student" id="avatar-text">ST</div>
-            <div>
-              <div class="user-name" id="user-name">Student</div>
-              <div class="user-role" id="user-role">Student · Learnly</div>
-            </div>
-          </div>
-        </div>
+  <div class="nav-section">Teach</div>
+  <div class="nav-item active" onclick="showPage('dashboard',this)">
+    <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" fill="currentColor"/><rect x="9" y="2" width="5" height="5" rx="1" fill="currentColor"/><rect x="2" y="9" width="5" height="5" rx="1" fill="currentColor"/><rect x="9" y="9" width="5" height="5" rx="1" fill="currentColor"/></svg>
+    Overview
+  </div>
+  <div class="nav-item" onclick="showPage('courses',this)">
+    <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="8" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="10" height="2" rx="1" fill="currentColor"/></svg>
+    My Courses
+  </div>
+  <div class="nav-item" onclick="showPage('students',this)">
+    <svg viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M2 13c0-2.2 1.8-4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="7" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M10 13c0-1.7 1.3-3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    Students
+    <span class="nav-badge">2</span>
+  </div>
+  <div class="nav-item" onclick="showPage('quizbuilder',this)">
+    <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3.5L10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    Quiz Builder
+  </div>
+  <div class="nav-item" onclick="showPage('grading',this)">
+    <svg viewBox="0 0 16 16" fill="none"><path d="M2 13l3-3 3 2 4-5 2 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Grading
+  </div>
 
-        <div class="nav-section">Main</div>
-        <div class="nav-item active" data-target="overview">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="9" y="2" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="2" y="9" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="9" y="9" width="5" height="5" rx="1.5" fill="currentColor"/></svg>
-          Dashboard
-        </div>
-        <div class="nav-item" data-target="courses">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 14h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          My Courses
-          <span class="nav-badge badge-accent" id="badge-courses">0</span>
-        </div>
-        <div class="nav-item" data-target="assignments">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 4a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V4z" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h6M5 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Assignments
-          <span class="nav-badge badge-red" id="badge-pending">0</span>
-        </div>
-        <div class="nav-item" data-target="grades">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 13l3-3 3 2 4-5 2 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Progress
-        </div>
-        <div class="nav-item" data-target="announcements">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M13 7c0 3-2.2 5-5 5a5.5 5.5 0 01-2-.4L2 13l1.4-4A5 5 0 018 2c2.8 0 5 2 5 5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-          Announcements
-          <span class="nav-badge badge-red" id="badge-notifications">0</span>
-        </div>
+  <div class="nav-section">Communicate</div>
+  <div class="nav-item" onclick="showPage('announcements',this)">
+    <svg viewBox="0 0 16 16" fill="none"><path d="M3 5a2 2 0 012-2h6a2 2 0 012 2v5a2 2 0 01-2 2H6l-3 2V5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+    Announcements
+  </div>
+  <div class="nav-item" onclick="showPage('analytics',this)">
+    <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="9" width="3" height="5" rx="1" fill="currentColor"/><rect x="6.5" y="5" width="3" height="9" rx="1" fill="currentColor"/><rect x="11" y="2" width="3" height="12" rx="1" fill="currentColor"/></svg>
+    Analytics
+  </div>
 
-        <div class="sidebar-footer">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3.5L10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          <span id="session-label">Session loading...</span>
+  <div class="sidebar-bottom">
+    <div class="nav-item" onclick="showPage('settings',this)">
+      <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 2v1M8 13v1M2 8h1M13 8h1M3.93 3.93l.7.7M11.37 11.37l.7.7M3.93 12.07l.7-.7M11.37 4.63l.7-.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Settings
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">Overview</div>
+    <button class="btn-new" onclick="showPage('courses',document.querySelectorAll('.nav-item')[1])">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="#0a0a0b"><path d="M6 1v10M1 6h10" stroke="#0a0a0b" stroke-width="1.5" stroke-linecap="round"/></svg>
+      New Course
+    </button>
+    <div class="notif-btn">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 2a5 5 0 00-5 5v2l-1 2h12l-1-2V7a5 5 0 00-5-5zM6.5 13a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <div class="notif-dot"></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="page active" id="page-dashboard">
+      <div class="greeting">
+        <h1>Welcome back, <em>Dr. Nair</em> 👩‍🏫</h1>
+        <p>2 students flagged as at-risk across your courses.</p>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-icon" style="background:var(--accent-dim)">📚</span>Active Courses</div>
+          <div class="stat-val">3</div>
+          <div class="stat-delta" style="color:var(--muted)">1 draft in progress</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-icon" style="background:var(--blue-dim)">👥</span>Total Students</div>
+          <div class="stat-val">124</div>
+          <div class="stat-delta delta-up">↑ 18 this week</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-icon" style="background:var(--green-dim)">🏆</span>Avg. Score</div>
+          <div class="stat-val">82%</div>
+          <div class="stat-delta delta-up">↑ 3% from last month</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-icon" style="background:var(--red-dim)">⚠️</span>At Risk</div>
+          <div class="stat-val" style="color:var(--red)">2</div>
+          <div class="stat-delta" style="color:var(--red)">Needs attention</div>
         </div>
       </div>
 
-      <div class="main">
-        <div class="topbar">
-          <div class="topbar-left">
-            <div class="page-title">Dashboard</div>
-          </div>
-          <div class="topbar-right">
-            <div class="topbar-search">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-              Search anything...
+      <div class="two-col">
+        <div>
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-header">
+              <div class="card-title">Recent student activity</div>
+              <div class="card-action" onclick="showPage('students',document.querySelectorAll('.nav-item')[2])">View all →</div>
             </div>
-            <button class="icon-btn" type="button" id="btn-refresh-notifs">
-              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 2a4 4 0 014 4v2l1 2H3l1-2V6a4 4 0 014-4z" stroke="currentColor" stroke-width="1.5"/><path d="M6.5 13a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-              <span class="notif-dot"></span>
-            </button>
-            <button class="icon-btn" type="button" id="btn-logout">
-              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M6 3H4a2 2 0 00-2 2v6a2 2 0 002 2h2" stroke="currentColor" stroke-width="1.5"/><path d="M10 11l3-3-3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-            </button>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Student</th><th>Course</th><th>Progress</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td>Alex Santos</td><td class="muted">ML Fundamentals</td><td><div class="prog-bg"><div class="prog-fill" style="width:72%"></div></div></td><td><span class="status-pill pill-on-track">On Track</span></td></tr>
+                  <tr><td>Maria Kim</td><td class="muted">ML Fundamentals</td><td><div class="prog-bg"><div class="prog-fill prog-fill-warn" style="width:32%"></div></div></td><td><span class="status-pill pill-at-risk">At Risk</span></td></tr>
+                  <tr><td>David Osei</td><td class="muted">ML Fundamentals</td><td><div class="prog-bg"><div class="prog-fill" style="width:88%"></div></div></td><td><span class="status-pill pill-done">Completed</span></td></tr>
+                  <tr><td>Rina Tanaka</td><td class="muted">Advanced NLP</td><td><div class="prog-bg"><div class="prog-fill prog-fill-low" style="width:18%"></div></div></td><td><span class="status-pill pill-at-risk">At Risk</span></td></tr>
+                  <tr><td>Tom Beckett</td><td class="muted">Advanced NLP</td><td><div class="prog-bg"><div class="prog-fill" style="width:65%"></div></div></td><td><span class="status-pill pill-on-track">On Track</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Pending grading</div><div class="card-action">Grade all →</div></div>
+            <div class="grade-row"><div class="grade-av" style="background:var(--blue-dim);color:var(--blue)">AS</div><div style="flex:1"><div style="font-size:13px;font-weight:500">Alex Santos</div><div style="font-size:11px;color:var(--muted)">ML Module 3 Quiz · Submitted 1h ago</div></div><button class="btn-xs btn-xs-gold">Review</button></div>
+            <div class="grade-row"><div class="grade-av" style="background:var(--purple-dim);color:var(--purple)">MK</div><div style="flex:1"><div style="font-size:13px;font-weight:500">Maria Kim</div><div style="font-size:11px;color:var(--muted)">ML Module 2 Retake · Submitted 3h ago</div></div><button class="btn-xs btn-xs-gold">Review</button></div>
+            <div class="grade-row"><div class="grade-av" style="background:var(--green-dim);color:var(--green)">RT</div><div style="flex:1"><div style="font-size:13px;font-weight:500">Rina Tanaka</div><div style="font-size:11px;color:var(--muted)">NLP Intro Quiz · Submitted yesterday</div></div><button class="btn-xs btn-xs-gold">Review</button></div>
           </div>
         </div>
 
-        <div class="content">
-          <div class="hero-block" id="overview">
-            <div class="hero-title" id="hero-title">Good day</div>
-            <div class="hero-sub" id="hero-sub">Loading your learning workspace...</div>
-          </div>
-
-          <div class="stat-grid stat-grid-4">
-            <div class="stat-card">
-              <div class="stat-top">
-                <div class="stat-icon" style="background:var(--accent-dim)">📚</div>
-                <span class="stat-delta delta-up" id="delta-courses">syncing</span>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Course health</div></div>
+            <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px">
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span>ML Fundamentals</span><span style="color:var(--muted)">78 students</span></div>
+                <div class="prog-bg" style="width:100%"><div class="prog-fill" style="width:84%"></div></div>
+                <div style="font-size:10px;color:var(--muted);margin-top:3px">84% avg. completion</div>
               </div>
-              <div class="stat-val" id="stat-courses">0</div>
-              <div class="stat-label">Enrolled courses</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-top">
-                <div class="stat-icon" style="background:var(--teal-dim)">✅</div>
-                <span class="stat-delta delta-up" id="delta-completed">live</span>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span>Advanced NLP</span><span style="color:var(--muted)">32 students</span></div>
+                <div class="prog-bg" style="width:100%"><div class="prog-fill prog-fill-warn" style="width:52%"></div></div>
+                <div style="font-size:10px;color:var(--muted);margin-top:3px">52% avg. completion</div>
               </div>
-              <div class="stat-val" id="stat-completed">0</div>
-              <div class="stat-label">Lessons completed</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-top">
-                <div class="stat-icon" style="background:var(--gold-dim)">🏆</div>
-                <span class="stat-delta delta-up" id="delta-score">latest</span>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span>Python for Research</span><span style="color:var(--muted)">14 students</span></div>
+                <div class="prog-bg" style="width:100%"><div class="prog-fill" style="width:91%"></div></div>
+                <div style="font-size:10px;color:var(--muted);margin-top:3px">91% avg. completion</div>
               </div>
-              <div class="stat-val" id="stat-score">--</div>
-              <div class="stat-label">Average quiz score</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-top">
-                <div class="stat-icon" style="background:var(--red-dim)">⏰</div>
-                <span class="stat-delta delta-down" id="delta-pending">watch list</span>
-              </div>
-              <div class="stat-val" id="stat-pending">0</div>
-              <div class="stat-label">Pending assignments</div>
             </div>
           </div>
 
-          <div class="grid-3-1" id="courses">
-            <div class="card">
-              <div class="card-head">
-                <div>
-                  <div class="card-title">Continue learning</div>
-                  <div class="card-sub">Pick up where you left off</div>
-                </div>
-                <button class="sec-action" type="button" id="btn-refresh-courses">Refresh</button>
-              </div>
-              <div id="course-list"></div>
-              <div class="status" id="courses-status"></div>
-            </div>
-
-            <div class="card" id="assignments">
-              <div class="card-head">
-                <div class="card-title">Upcoming</div>
-              </div>
-              <div class="card-pad" id="upcoming-list"></div>
-              <div class="status" id="upcoming-status"></div>
-            </div>
-          </div>
-
-          <div class="grid-3">
-            <div class="card" id="grades">
-              <div class="card-head"><div class="card-title">Overall score</div></div>
-              <div class="score-big">
-                <div class="score-num" style="color:var(--accent)" id="overall-score">--</div>
-                <div class="score-label">Across your graded work</div>
-              </div>
-              <div class="score-bar-wrap">
-                <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px"><span>Progress this month</span><span id="score-foot">No graded submissions yet</span></div>
-                <div class="mini-chart" id="score-chart"></div>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="card-head">
-                <div class="card-title">Course search</div>
-                <button class="sec-action" type="button" id="btn-search">Search</button>
-              </div>
-              <div class="card-pad">
-                <div class="inline-form">
-                  <div>
-                    <label for="course-search">Search courses</label>
-                    <input id="course-search" placeholder="python, ai, design" />
-                  </div>
-                  <div id="search-results" class="stack-list"></div>
-                  <div class="status" id="search-status"></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="card" id="announcements">
-              <div class="card-head">
-                <div class="card-title">Announcements</div>
-                <span class="pill pill-red" id="notif-pill">0 new</span>
-              </div>
-              <div id="notification-list"></div>
-              <div class="status" id="notifications-status"></div>
-            </div>
-          </div>
-
-          <div class="grid-2">
-            <div class="card">
-              <div class="card-head"><div class="card-title">Submit assignment</div></div>
-              <div class="card-pad">
-                <form id="submit-form" class="inline-form">
-                  <div>
-                    <label for="assignment-id">Assignment ID</label>
-                    <input id="assignment-id" required />
-                  </div>
-                  <div>
-                    <label for="submission-text">Response</label>
-                    <textarea id="submission-text" placeholder="Write your answer or attach a file"></textarea>
-                  </div>
-                  <div>
-                    <label for="submission-file">File upload</label>
-                    <input id="submission-file" type="file" />
-                  </div>
-                  <div style="display:flex;gap:8px;flex-wrap:wrap">
-                    <button class="primary-btn" type="submit">Submit work</button>
-                  </div>
-                  <div class="status" id="submit-status"></div>
-                </form>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="card-head">
-                <div class="card-title">Check feedback</div>
-                <button class="sec-action" type="button" id="btn-check-grade">Check</button>
-              </div>
-              <div class="card-pad">
-                <div class="inline-form">
-                  <div>
-                    <label for="grade-assignment">Assignment ID</label>
-                    <input id="grade-assignment" />
-                  </div>
-                  <div id="grade-output" class="stack-list"></div>
-                  <div class="status" id="grade-status"></div>
-                </div>
-              </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Quick actions</div></div>
+            <div style="padding:14px 20px;display:flex;flex-direction:column;gap:8px">
+              <button class="btn-xs btn-xs-gold" style="width:100%;padding:10px 14px;text-align:left" onclick="showPage('quizbuilder',document.querySelectorAll('.nav-item')[3])">✏️ &nbsp;Create new quiz</button>
+              <button class="btn-xs btn-xs-gold" style="width:100%;padding:10px 14px;text-align:left" onclick="showPage('announcements',document.querySelectorAll('.nav-item')[5])">📢 &nbsp;Send announcement</button>
+              <button class="btn-xs btn-xs-gold" style="width:100%;padding:10px 14px;text-align:left" onclick="showPage('analytics',document.querySelectorAll('.nav-item')[6])">📊 &nbsp;View analytics</button>
+              <button class="btn-xs btn-xs-ghost" style="width:100%;padding:10px 14px;text-align:left" onclick="showPage('grading',document.querySelectorAll('.nav-item')[4])">📝 &nbsp;Grade submissions (3)</button>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <script src="/lms.js"></script>
-    <script>
-      const $ = (selector) => document.querySelector(selector);
-      const setStatus = (el, msg, type) => {
-        el.textContent = msg || "";
-        el.dataset.type = type || "";
-      };
-
-      const state = {
-        me: null,
-        courses: [],
-        notifications: [],
-        assignments: [],
-        grades: [],
-      };
-
-      function requireRole(role) {
-        const token = Learnly.loadToken();
-        if (!token) return false;
-        const payload = Learnly.decodeJwt(token);
-        return payload && payload.role === role;
-      }
-
-      function escapeHtml(value) {
-        return String(value).replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
-      }
-
-      function initials(name) {
-        return String(name || "Student")
-          .split(/\s+/)
-          .filter(Boolean)
-          .slice(0, 2)
-          .map((part) => part[0].toUpperCase())
-          .join("");
-      }
-
-      function getGreeting() {
-        const hour = new Date().getHours();
-        if (hour < 12) return "Good morning";
-        if (hour < 18) return "Good afternoon";
-        return "Good evening";
-      }
-
-      function progressForCourse(course) {
-        let seed = 0;
-        String(course.id || "").split("").forEach((char) => {
-          seed += char.charCodeAt(0);
-        });
-        return 20 + (seed % 70);
-      }
-
-      function renderCourseList() {
-        const root = $("#course-list");
-        root.innerHTML = "";
-        if (!state.courses.length) {
-          root.innerHTML = '<div class="empty-state">No enrolled courses yet. Use search to join one.</div>';
-          return;
-        }
-
-        state.courses.forEach((course) => {
-          const progress = progressForCourse(course);
-          const row = document.createElement("div");
-          row.className = "student-row";
-          row.innerHTML = `
-            <div class="s-avatar">${["🧠", "⚛️", "📊", "🔐", "🎯"][Number(course.id) % 5]}</div>
-            <div class="s-name">
-              <div style="font-size:13px;font-weight:500">${escapeHtml(course.title)}</div>
-              <div style="font-size:11px;color:var(--muted)">${escapeHtml(course.instructorName || "Instructor")} · ${Number(course.studentCount || 0)} learners</div>
+    <!-- COURSES -->
+    <div class="page" id="page-courses">
+      <div class="greeting"><h1>My <em>Courses</em></h1><p>3 active · 1 draft · 124 total students</p></div>
+      <div class="course-grid">
+        <div class="course-card">
+          <div class="course-card-banner" style="background:linear-gradient(135deg,rgba(200,241,53,0.12),rgba(200,241,53,0.03))">🧠
+            <span style="position:absolute;top:10px;right:12px;font-size:10px;padding:3px 9px;border-radius:100px;background:var(--green-dim);color:var(--green);font-weight:500">Active</span>
+          </div>
+          <div class="course-card-body">
+            <div class="course-card-title">Machine Learning Fundamentals</div>
+            <div class="course-card-meta">24 lessons · Created Jan 2026</div>
+            <div class="course-card-stats">
+              <div class="c-stat"><div class="c-stat-val">78</div><div class="c-stat-label">Students</div></div>
+              <div class="c-stat"><div class="c-stat-val">82%</div><div class="c-stat-label">Avg score</div></div>
+              <div class="c-stat"><div class="c-stat-val">84%</div><div class="c-stat-label">Completion</div></div>
             </div>
-            <div class="s-prog">
-              <div class="prog-wrap">
-                <div class="prog-track"><div class="prog-fill" style="width:${progress}%"></div></div>
-                <span class="prog-pct">${progress}%</span>
-              </div>
+            <div class="course-actions">
+              <button class="btn-xs btn-xs-gold" onclick="showPage('students',document.querySelectorAll('.nav-item')[2])">View students</button>
+              <button class="btn-xs btn-xs-ghost">Edit course</button>
             </div>
-          `;
-          root.appendChild(row);
-        });
-      }
-
-      function renderUpcoming() {
-        const root = $("#upcoming-list");
-        root.innerHTML = "";
-        if (!state.assignments.length) {
-          root.innerHTML = '<div class="empty-state">No upcoming assignments right now.</div>';
-          return;
-        }
-
-        state.assignments.slice(0, 4).forEach((assignment) => {
-          const due = new Date(assignment.dueDate);
-          const month = due.toLocaleString("en-US", { month: "short" });
-          const item = document.createElement("div");
-          item.className = "upcoming-item";
-          item.innerHTML = `
-            <div class="date-badge">
-              <div class="date-day">${due.getDate()}</div>
-              <div class="date-mon">${month}</div>
+          </div>
+        </div>
+        <div class="course-card">
+          <div class="course-card-banner" style="background:linear-gradient(135deg,rgba(180,130,255,0.12),rgba(180,130,255,0.03))">🤖
+            <span style="position:absolute;top:10px;right:12px;font-size:10px;padding:3px 9px;border-radius:100px;background:var(--green-dim);color:var(--green);font-weight:500">Active</span>
+          </div>
+          <div class="course-card-body">
+            <div class="course-card-title">Advanced NLP & Transformers</div>
+            <div class="course-card-meta">18 lessons · Created Feb 2026</div>
+            <div class="course-card-stats">
+              <div class="c-stat"><div class="c-stat-val">32</div><div class="c-stat-label">Students</div></div>
+              <div class="c-stat"><div class="c-stat-val">77%</div><div class="c-stat-label">Avg score</div></div>
+              <div class="c-stat"><div class="c-stat-val">52%</div><div class="c-stat-label">Completion</div></div>
             </div>
-            <div class="upcoming-info">
-              <div class="upcoming-title">${escapeHtml(assignment.title)}</div>
-              <div class="upcoming-sub">Assignment #${escapeHtml(assignment.id)}</div>
+            <div class="course-actions">
+              <button class="btn-xs btn-xs-gold">View students</button>
+              <button class="btn-xs btn-xs-ghost">Edit course</button>
             </div>
-            <span class="pill ${Date.now() > due.getTime() ? "pill-red" : "pill-muted"}">${Date.now() > due.getTime() ? "Due" : "Upcoming"}</span>
-          `;
-          root.appendChild(item);
-        });
-      }
-
-      function renderNotifications() {
-        const root = $("#notification-list");
-        root.innerHTML = "";
-        if (!state.notifications.length) {
-          root.innerHTML = '<div class="empty-state">No announcements yet.</div>';
-          $("#notif-pill").textContent = "0 new";
-          $("#badge-notifications").textContent = "0";
-          return;
-        }
-
-        let unread = 0;
-        state.notifications.slice(0, 4).forEach((notification) => {
-          if (!notification.readAt) unread += 1;
-          const item = document.createElement("div");
-          item.className = "ann-item";
-          item.innerHTML = `
-            <div class="ann-head">
-              <div class="ann-title">${notification.readAt ? "Update" : "New update"}</div>
-              <div class="ann-time">${new Date(notification.createdAt).toLocaleDateString()}</div>
+          </div>
+        </div>
+        <div class="course-card">
+          <div class="course-card-banner" style="background:linear-gradient(135deg,rgba(100,200,180,0.12),rgba(100,200,180,0.03))">🐍
+            <span style="position:absolute;top:10px;right:12px;font-size:10px;padding:3px 9px;border-radius:100px;background:var(--green-dim);color:var(--green);font-weight:500">Active</span>
+          </div>
+          <div class="course-card-body">
+            <div class="course-card-title">Python for Research</div>
+            <div class="course-card-meta">14 lessons · Created Dec 2025</div>
+            <div class="course-card-stats">
+              <div class="c-stat"><div class="c-stat-val">14</div><div class="c-stat-label">Students</div></div>
+              <div class="c-stat"><div class="c-stat-val">91%</div><div class="c-stat-label">Avg score</div></div>
+              <div class="c-stat"><div class="c-stat-val">91%</div><div class="c-stat-label">Completion</div></div>
             </div>
-            <div class="ann-body">${escapeHtml(notification.message)}</div>
-          `;
-          root.appendChild(item);
-        });
-        $("#notif-pill").textContent = `${unread} new`;
-        $("#badge-notifications").textContent = String(unread);
-      }
-
-      function renderScore() {
-        const chart = $("#score-chart");
-        chart.innerHTML = "";
-        if (!state.grades.length) {
-          $("#stat-score").textContent = "--";
-          $("#overall-score").textContent = "--";
-          $("#score-foot").textContent = "No graded submissions yet";
-          [35, 44, 52, 48, 56, 63, 58].forEach((height) => {
-            const bar = document.createElement("div");
-            bar.className = "bar";
-            bar.style.height = `${height}%`;
-            bar.style.background = "var(--bg4)";
-            bar.style.border = "1px solid var(--border)";
-            chart.appendChild(bar);
-          });
-          return;
-        }
-
-        const average = Math.round(state.grades.reduce((sum, row) => sum + row, 0) / state.grades.length);
-        $("#stat-score").textContent = `${average}%`;
-        $("#overall-score").textContent = `${average}%`;
-        $("#score-foot").textContent = `${state.grades.length} graded submission(s)`;
-
-        state.grades.slice(-7).forEach((score, index) => {
-          const bar = document.createElement("div");
-          bar.className = "bar";
-          bar.style.height = `${Math.max(18, Math.min(100, score))}%`;
-          bar.style.background = index === state.grades.slice(-7).length - 1 ? "var(--accent)" : "var(--accent-dim)";
-          chart.appendChild(bar);
-        });
-      }
-
-      function renderSearchResults(rows) {
-        const root = $("#search-results");
-        root.innerHTML = "";
-        if (!rows.length) {
-          root.innerHTML = '<div class="empty-state">No matching courses found.</div>';
-          return;
-        }
-
-        rows.slice(0, 4).forEach((course) => {
-          const wrapper = document.createElement("div");
-          wrapper.className = "student-row";
-          wrapper.innerHTML = `
-            <div class="s-avatar">${["📘", "🧩", "🛰", "💡"][Number(course.id) % 4]}</div>
-            <div class="s-name">
-              <div style="font-size:13px;font-weight:500">${escapeHtml(course.title)}</div>
-              <div style="font-size:11px;color:var(--muted)">${escapeHtml(course.instructorName || "Instructor")}</div>
+            <div class="course-actions">
+              <button class="btn-xs btn-xs-gold">View students</button>
+              <button class="btn-xs btn-xs-ghost">Edit course</button>
             </div>
-            <button class="enroll-btn" type="button">Enroll</button>
-          `;
-          wrapper.querySelector("button").addEventListener("click", async () => {
-            try {
-              await Learnly.api(`/api/courses/${encodeURIComponent(course.id)}/enroll`, { method: "POST" });
-              setStatus($("#search-status"), `Enrolled in "${course.title}".`, "ok");
-              await refreshCourses();
-            } catch (error) {
-              setStatus($("#search-status"), error.message, "error");
-            }
-          });
-          root.appendChild(wrapper);
-        });
-      }
+          </div>
+        </div>
+        <div class="course-card" style="border-style:dashed;opacity:0.6;cursor:pointer" onclick="showPage('courses',this)">
+          <div class="course-card-banner" style="background:var(--bg3)">➕
+            <span style="position:absolute;top:10px;right:12px;font-size:10px;padding:3px 9px;border-radius:100px;background:var(--bg4);color:var(--faint)">Draft</span>
+          </div>
+          <div class="course-card-body">
+            <div class="course-card-title" style="color:var(--muted)">Deep Learning — Vision Models</div>
+            <div class="course-card-meta">0 of 20 lessons complete</div>
+            <div style="margin-top:14px"><button class="btn-xs btn-xs-ghost" style="width:100%;padding:10px">Continue editing</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-      async function loadProfile() {
-        try {
-          const data = await Learnly.api("/api/auth/me");
-          state.me = data.user;
-          $("#user-name").textContent = data.user.name;
-          $("#avatar-text").textContent = initials(data.user.name);
-          $("#hero-title").textContent = `${getGreeting()}, ${data.user.name.split(" ")[0]} ☀️`;
-          $("#hero-sub").textContent = "You can continue courses, check scores, and manage assignments from this workspace.";
-          $("#session-label").textContent = `Signed in as ${data.user.email}`;
-        } catch (error) {
-          $("#session-label").textContent = "Session missing or invalid";
-        }
-      }
+    <!-- STUDENTS -->
+    <div class="page" id="page-students">
+      <div class="greeting"><h1>My <em>Students</em></h1><p>124 enrolled across 3 courses · 2 need attention</p></div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">All students</div>
+          <div style="display:flex;gap:8px">
+            <select class="btn-xs btn-xs-ghost" style="font-family:'DM Sans',sans-serif;cursor:pointer;outline:none"><option>All Courses</option><option>ML Fundamentals</option><option>Advanced NLP</option><option>Python for Research</option></select>
+            <select class="btn-xs btn-xs-ghost" style="font-family:'DM Sans',sans-serif;cursor:pointer;outline:none"><option>All Status</option><option>On Track</option><option>At Risk</option><option>Completed</option></select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Student</th><th>Course</th><th>Progress</th><th>Quiz Avg</th><th>Last Active</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="grade-av" style="background:var(--blue-dim);color:var(--blue)">AS</div>Alex Santos</div></td><td class="muted">ML Fundamentals</td><td><div style="display:flex;align-items:center;gap:8px"><div class="prog-bg"><div class="prog-fill" style="width:72%"></div></div><span style="font-size:11px;color:var(--muted)">72%</span></div></td><td>88%</td><td class="muted">2h ago</td><td><span class="status-pill pill-on-track">On Track</span></td><td><button class="btn-xs btn-xs-ghost" style="padding:4px 10px">Message</button></td></tr>
+              <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="grade-av" style="background:var(--purple-dim);color:var(--purple)">MK</div>Maria Kim</div></td><td class="muted">ML Fundamentals</td><td><div style="display:flex;align-items:center;gap:8px"><div class="prog-bg"><div class="prog-fill prog-fill-warn" style="width:32%"></div></div><span style="font-size:11px;color:var(--muted)">32%</span></div></td><td>62%</td><td class="muted">4 days ago</td><td><span class="status-pill pill-at-risk">At Risk</span></td><td><button class="btn-xs btn-xs-gold" style="padding:4px 10px">Reach out</button></td></tr>
+              <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="grade-av" style="background:var(--green-dim);color:var(--green)">DO</div>David Osei</div></td><td class="muted">ML Fundamentals</td><td><div style="display:flex;align-items:center;gap:8px"><div class="prog-bg"><div class="prog-fill" style="width:100%"></div></div><span style="font-size:11px;color:var(--muted)">100%</span></div></td><td>94%</td><td class="muted">1 day ago</td><td><span class="status-pill pill-done">Completed</span></td><td><button class="btn-xs btn-xs-ghost" style="padding:4px 10px">View</button></td></tr>
+              <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="grade-av" style="background:rgba(255,180,100,0.15);color:rgba(255,180,100,0.9)">RT</div>Rina Tanaka</div></td><td class="muted">Advanced NLP</td><td><div style="display:flex;align-items:center;gap:8px"><div class="prog-bg"><div class="prog-fill prog-fill-low" style="width:18%"></div></div><span style="font-size:11px;color:var(--muted)">18%</span></div></td><td>55%</td><td class="muted">6 days ago</td><td><span class="status-pill pill-at-risk">At Risk</span></td><td><button class="btn-xs btn-xs-gold" style="padding:4px 10px">Reach out</button></td></tr>
+              <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="grade-av" style="background:rgba(100,200,255,0.15);color:rgba(100,200,255,0.9)">TB</div>Tom Beckett</div></td><td class="muted">Advanced NLP</td><td><div style="display:flex;align-items:center;gap:8px"><div class="prog-bg"><div class="prog-fill" style="width:65%"></div></div><span style="font-size:11px;color:var(--muted)">65%</span></div></td><td>79%</td><td class="muted">Yesterday</td><td><span class="status-pill pill-on-track">On Track</span></td><td><button class="btn-xs btn-xs-ghost" style="padding:4px 10px">Message</button></td></tr>
+              <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="grade-av" style="background:var(--blue-dim);color:var(--blue)">JL</div>Jana Lin</div></td><td class="muted">Python for Research</td><td><div style="display:flex;align-items:center;gap:8px"><div class="prog-bg"><div class="prog-fill" style="width:91%"></div></div><span style="font-size:11px;color:var(--muted)">91%</span></div></td><td>96%</td><td class="muted">3h ago</td><td><span class="status-pill pill-on-track">On Track</span></td><td><button class="btn-xs btn-xs-ghost" style="padding:4px 10px">Message</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
-      async function refreshCourses() {
-        setStatus($("#courses-status"), "Loading courses...", "");
-        try {
-          const courses = await Learnly.api("/api/courses/my");
-          state.courses = Array.isArray(courses) ? courses : [];
-          $("#stat-courses").textContent = String(state.courses.length);
-          $("#delta-courses").textContent = state.courses.length ? `${state.courses.length} active` : "No courses";
-          $("#badge-courses").textContent = String(state.courses.length);
-          $("#stat-completed").textContent = String(state.courses.length * 2);
-          $("#delta-completed").textContent = state.courses.length ? "Learning live" : "Start learning";
-          renderCourseList();
-          setStatus($("#courses-status"), "", "");
-          await refreshAssignments();
-        } catch (error) {
-          renderCourseList();
-          setStatus($("#courses-status"), error.message, "error");
-        }
-      }
+    <!-- QUIZ BUILDER -->
+    <div class="page" id="page-quizbuilder">
+      <div class="greeting"><h1>Quiz <em>Builder</em></h1><p>ML Fundamentals — Module 4</p></div>
+      <div class="quiz-builder">
+        <div>
+          <div class="qb-list">
+            <div class="qb-item active"><div class="qb-item-name">Q1: What is overfitting?</div><div class="qb-item-meta">Multiple choice · Correct: B</div></div>
+            <div class="qb-item"><div class="qb-item-name">Q2: Activation functions</div><div class="qb-item-meta">Multiple choice · Correct: C</div></div>
+            <div class="qb-item"><div class="qb-item-name">Q3: Dropout regularisation</div><div class="qb-item-meta">Multiple choice · Correct: A</div></div>
+            <div class="qb-item"><div class="qb-item-name">Q4: Backpropagation</div><div class="qb-item-meta">Multiple choice · Not saved</div></div>
+          </div>
+          <button class="add-q-btn">+ Add question</button>
+        </div>
+        <div class="qb-editor">
+          <div class="qb-label">Question text</div>
+          <input class="qb-input" value="What is the main cause of overfitting in a neural network?">
+          <div class="qb-label">Answer options</div>
+          <div class="option-row">
+            <div class="opt-letter">A</div>
+            <input class="opt-input" value="Too little training data">
+            <div class="opt-check" onclick="toggleCorrect(this)">✓</div>
+          </div>
+          <div class="option-row">
+            <div class="opt-letter correct">B</div>
+            <input class="opt-input" value="Too many parameters relative to training data">
+            <div class="opt-check active" onclick="toggleCorrect(this)">✓</div>
+          </div>
+          <div class="option-row">
+            <div class="opt-letter">C</div>
+            <input class="opt-input" value="High learning rate">
+            <div class="opt-check" onclick="toggleCorrect(this)">✓</div>
+          </div>
+          <div class="option-row">
+            <div class="opt-letter">D</div>
+            <input class="opt-input" value="Normalisation of input features">
+            <div class="opt-check" onclick="toggleCorrect(this)">✓</div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:20px">
+            <button class="btn-send" style="background:var(--accent);color:#0a0a0b">Save question</button>
+            <button class="btn-xs btn-xs-ghost" style="padding:9px 18px">Preview quiz</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-      async function refreshAssignments() {
-        const assignmentSets = [];
-        const grades = [];
-        for (const course of state.courses) {
-          try {
-            const assignments = await Learnly.api(`/api/assignments/course/${encodeURIComponent(course.id)}`);
-            assignmentSets.push(...assignments);
-            for (const assignment of assignments) {
-              try {
-                const submission = await Learnly.api(`/api/submissions/my?assignmentId=${encodeURIComponent(assignment.id)}`);
-                if (submission.grade && submission.grade.score !== undefined) {
-                  grades.push(Number(submission.grade.score));
-                }
-              } catch (error) {
-              }
-            }
-          } catch (error) {
-          }
-        }
-        state.assignments = assignmentSets.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
-        state.grades = grades;
-        $("#stat-pending").textContent = String(state.assignments.length);
-        $("#delta-pending").textContent = state.assignments.length ? "Due soon" : "Clear";
-        $("#badge-pending").textContent = String(state.assignments.length);
-        renderUpcoming();
-        renderScore();
-      }
+    <!-- GRADING -->
+    <div class="page" id="page-grading">
+      <div class="greeting"><h1><em>Grading</em></h1><p>3 submissions awaiting review</p></div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Awaiting review</div></div>
+        <div class="grade-row"><div class="grade-av" style="background:var(--blue-dim);color:var(--blue)">AS</div><div style="flex:1"><div style="font-size:13px;font-weight:500">Alex Santos</div><div style="font-size:11px;color:var(--muted)">ML Module 3 Quiz · 10/10 questions · Submitted 1h ago</div></div><div class="grade-badge gb-a" style="margin-right:8px">94%</div><button class="btn-xs btn-xs-gold">Grade</button></div>
+        <div class="grade-row"><div class="grade-av" style="background:var(--purple-dim);color:var(--purple)">MK</div><div style="flex:1"><div style="font-size:13px;font-weight:500">Maria Kim</div><div style="font-size:11px;color:var(--muted)">ML Module 2 Retake · 10/10 questions · Submitted 3h ago</div></div><div class="grade-badge gb-c" style="margin-right:8px">68%</div><button class="btn-xs btn-xs-gold">Grade</button></div>
+        <div class="grade-row"><div class="grade-av" style="background:var(--green-dim);color:var(--green)">RT</div><div style="flex:1"><div style="font-size:13px;font-weight:500">Rina Tanaka</div><div style="font-size:11px;color:var(--muted)">NLP Intro Quiz · 8/10 questions · Submitted yesterday</div></div><div class="grade-badge gb-d" style="margin-right:8px">55%</div><button class="btn-xs btn-xs-gold">Grade</button></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-header"><div class="card-title">Recently graded</div></div>
+        <div class="grade-row"><div class="grade-av" style="background:var(--green-dim);color:var(--green)">DO</div><div style="flex:1"><div style="font-size:13px;font-weight:500">David Osei</div><div style="font-size:11px;color:var(--muted)">ML Module 3 Quiz · Graded 2 days ago</div></div><div class="grade-badge gb-a">96%</div></div>
+        <div class="grade-row"><div class="grade-av" style="background:rgba(100,200,255,0.15);color:rgba(100,200,255,0.9)">TB</div><div style="flex:1"><div style="font-size:13px;font-weight:500">Tom Beckett</div><div style="font-size:11px;color:var(--muted)">NLP Module 2 Quiz · Graded 3 days ago</div></div><div class="grade-badge gb-b">82%</div></div>
+        <div class="grade-row"><div class="grade-av" style="background:var(--blue-dim);color:var(--blue)">JL</div><div style="flex:1"><div style="font-size:13px;font-weight:500">Jana Lin</div><div style="font-size:11px;color:var(--muted)">Python Module 3 · Graded 4 days ago</div></div><div class="grade-badge gb-a">98%</div></div>
+      </div>
+    </div>
 
-      async function refreshNotifications() {
-        setStatus($("#notifications-status"), "Loading announcements...", "");
-        try {
-          const notifications = await Learnly.api("/api/notifications?limit=30");
-          state.notifications = Array.isArray(notifications) ? notifications : [];
-          renderNotifications();
-          setStatus($("#notifications-status"), "", "");
-        } catch (error) {
-          renderNotifications();
-          setStatus($("#notifications-status"), error.message, "error");
-        }
-      }
+    <!-- ANNOUNCEMENTS -->
+    <div class="page" id="page-announcements">
+      <div class="greeting"><h1><em>Announcements</em></h1><p>Broadcast to your students</p></div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">New announcement</div></div>
+        <div class="ann-form">
+          <input class="ann-input" type="text" placeholder="Title (e.g. Office Hours Update)">
+          <textarea class="ann-input" placeholder="Write your message here…"></textarea>
+          <div class="ann-form-row">
+            <select class="select-input"><option>All my courses</option><option>ML Fundamentals only</option><option>Advanced NLP only</option><option>Python for Research only</option></select>
+            <button class="btn-send">Send Now</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Sent announcements</div></div>
+        <div class="sent-ann"><div class="sent-top"><span class="sent-course">ML Fundamentals</span><span class="sent-time">2h ago · 78 students</span></div><div class="sent-title">Office hours moved to Friday 3pm</div><div class="sent-body">Due to a faculty meeting, office hours this week will be held on Friday at 3pm instead of Wednesday.</div><div class="sent-reach">78 students · 52 read</div></div>
+        <div class="sent-ann"><div class="sent-top"><span class="sent-course">All Courses</span><span class="sent-time">Yesterday · 124 students</span></div><div class="sent-title">Quiz deadline reminder</div><div class="sent-body">Please remember that Module 3 quizzes are due by end of this week. Reach out if you need any help.</div><div class="sent-reach">124 students · 89 read</div></div>
+      </div>
+    </div>
 
-      async function searchCourses() {
-        setStatus($("#search-status"), "Searching...", "");
-        try {
-          const q = encodeURIComponent($("#course-search").value.trim());
-          const rows = await Learnly.api(`/api/courses${q ? `?q=${q}` : ""}`, { auth: false });
-          renderSearchResults(Array.isArray(rows) ? rows : []);
-          setStatus($("#search-status"), rows.length ? `Found ${rows.length} course(s).` : "", rows.length ? "ok" : "");
-        } catch (error) {
-          renderSearchResults([]);
-          setStatus($("#search-status"), error.message, "error");
-        }
-      }
+    <!-- ANALYTICS -->
+    <div class="page" id="page-analytics">
+      <div class="greeting"><h1>Course <em>Analytics</em></h1><p>Performance overview across all your courses</p></div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label">Total enrolments</div><div class="stat-val">124</div><div class="stat-delta delta-up">↑ 18 this month</div></div>
+        <div class="stat-card"><div class="stat-label">Avg. completion</div><div class="stat-val">76%</div><div class="stat-delta delta-up">↑ 5% this month</div></div>
+        <div class="stat-card"><div class="stat-label">Quiz pass rate</div><div class="stat-val">87%</div><div class="stat-delta delta-up">↑ 2% this month</div></div>
+        <div class="stat-card"><div class="stat-label">Avg. rating</div><div class="stat-val">4.8★</div><div class="stat-delta" style="color:var(--muted)">From 48 reviews</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Score distribution — ML Fundamentals</div></div>
+        <div style="padding:24px 20px;display:flex;align-items:flex-end;gap:8px;height:180px">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="flex:1;width:100%;background:var(--red-dim);border-radius:4px 4px 0 0;max-height:20px;min-height:20px"></div><div style="font-size:10px;color:var(--muted)">0–50</div><div style="font-size:11px;color:var(--red)">3</div></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="flex:1;width:100%;background:var(--accent-dim);border-radius:4px 4px 0 0;max-height:48px;min-height:48px"></div><div style="font-size:10px;color:var(--muted)">51–65</div><div style="font-size:11px;color:var(--muted)">8</div></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="flex:1;width:100%;background:var(--blue-dim);border-radius:4px 4px 0 0;max-height:80px;min-height:80px"></div><div style="font-size:10px;color:var(--muted)">66–79</div><div style="font-size:11px;color:var(--muted)">18</div></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="flex:1;width:100%;background:var(--green-dim);border-radius:4px 4px 0 0;height:120px"></div><div style="font-size:10px;color:var(--muted)">80–89</div><div style="font-size:11px;color:var(--green)">32</div></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="flex:1;width:100%;background:var(--green-dim);border-radius:4px 4px 0 0;height:96px;background:rgba(200,241,53,0.2)"></div><div style="font-size:10px;color:var(--muted)">90–100</div><div style="font-size:11px;color:var(--green)">17</div></div>
+        </div>
+      </div>
+    </div>
 
-      async function submitAssignment(event) {
-        event.preventDefault();
-        setStatus($("#submit-status"), "Submitting...", "");
-        try {
-          const form = new FormData();
-          form.set("assignmentId", $("#assignment-id").value.trim());
-          if ($("#submission-text").value.trim()) form.set("text", $("#submission-text").value.trim());
-          const file = $("#submission-file").files && $("#submission-file").files[0];
-          if (file) form.set("file", file);
-          await Learnly.api("/api/submissions", { method: "POST", form });
-          setStatus($("#submit-status"), "Assignment submitted.", "ok");
-          $("#submission-text").value = "";
-          $("#submission-file").value = "";
-        } catch (error) {
-          setStatus($("#submit-status"), error.message, "error");
-        }
-      }
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="greeting"><h1>Account <em>Settings</em></h1></div>
+      <div class="card" style="max-width:680px">
+        <div class="card-header"><div class="card-title">Instructor profile</div></div>
+        <div class="form-row"><div><div class="form-label">Full name</div></div><input class="form-input" value="Dr. Priya Nair"></div>
+        <div class="form-row"><div><div class="form-label">Email</div></div><input class="form-input" value="priya.nair@learnly.co"></div>
+        <div class="form-row"><div><div class="form-label">Title / credentials</div></div><input class="form-input" value="PhD, Machine Learning"></div>
+        <div style="padding:16px 20px;display:flex;gap:10px"><button class="btn-save">Save changes</button><button class="btn-ghost">Cancel</button></div>
+      </div>
+      <div class="card" style="max-width:680px;margin-top:16px">
+        <div class="card-header"><div class="card-title">Notification preferences</div></div>
+        <div class="form-row"><div><div class="form-label">Student submissions</div><div class="form-hint">Notify when a quiz is submitted</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="form-row"><div><div class="form-label">At-risk alerts</div><div class="form-hint">Flag students with low engagement</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="form-row"><div><div class="form-label">New enrolments</div><div class="form-hint">Notify on every new student enrolment</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+    </div>
 
-      async function checkGrade() {
-        const output = $("#grade-output");
-        output.innerHTML = "";
-        setStatus($("#grade-status"), "Loading feedback...", "");
-        try {
-          const assignmentId = $("#grade-assignment").value.trim();
-          const row = await Learnly.api(`/api/submissions/my?assignmentId=${encodeURIComponent(assignmentId)}`);
-          if (!row.grade) {
-            output.innerHTML = '<div class="empty-state">This assignment has been submitted, but no grade is posted yet.</div>';
-            setStatus($("#grade-status"), "Waiting for feedback.", "ok");
-            return;
-          }
-          output.innerHTML = `
-            <div class="ann-item">
-              <div class="ann-head">
-                <div class="ann-title">Score: ${row.grade.score}/100</div>
-                <div class="ann-time">${row.grade.gradedAt ? new Date(row.grade.gradedAt).toLocaleDateString() : ""}</div>
-              </div>
-              <div class="ann-body">${escapeHtml(row.grade.feedback || "No feedback provided.")}</div>
-            </div>
-          `;
-          setStatus($("#grade-status"), "Feedback loaded.", "ok");
-        } catch (error) {
-          setStatus($("#grade-status"), error.message, "error");
-        }
-      }
+  </div>
+</div>
 
-      function bindNav() {
-        document.querySelectorAll(".nav-item").forEach((item) => {
-          item.addEventListener("click", () => {
-            document.querySelectorAll(".nav-item").forEach((nav) => nav.classList.remove("active"));
-            item.classList.add("active");
-            const target = document.getElementById(item.dataset.target);
-            if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-          });
-        });
-      }
-
-      function init() {
-        if (!requireRole("student")) window.location.replace("/dashboard.html");
-        bindNav();
-        $("#btn-search").addEventListener("click", searchCourses);
-        $("#btn-refresh-courses").addEventListener("click", refreshCourses);
-        $("#btn-refresh-notifs").addEventListener("click", refreshNotifications);
-        $("#btn-logout").addEventListener("click", () => {
-          Learnly.clearToken();
-          window.location.href = "/signin.html";
-        });
-        $("#submit-form").addEventListener("submit", submitAssignment);
-        $("#btn-check-grade").addEventListener("click", checkGrade);
-        loadProfile();
-        refreshCourses();
-        refreshNotifications();
-      }
-
-      init();
-    </script>
-  </body>
+<script>
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(el && el.classList) el.classList.add('active');
+  const titles = {dashboard:'Overview',courses:'My Courses',students:'Students',quizbuilder:'Quiz Builder',grading:'Grading',announcements:'Announcements',analytics:'Analytics',settings:'Settings'};
+  document.getElementById('page-title').textContent = titles[name] || name;
+}
+function toggleCorrect(btn) {
+  document.querySelectorAll('.opt-check').forEach(b => { b.classList.remove('active'); b.closest('.option-row').querySelector('.opt-letter').classList.remove('correct'); });
+  btn.classList.add('active');
+  btn.closest('.option-row').querySelector('.opt-letter').classList.add('correct');
+}
+</script>
+</body>
 </html>

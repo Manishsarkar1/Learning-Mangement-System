@@ -1,501 +1,569 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Learnly - Admin Dashboard</title>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="/dashboard-theme.css" />
-  </head>
-  <body>
-    <div class="role-bar">
-      <span class="role-label">View as:</span>
-      <button class="role-btn" type="button" onclick="window.location.href='/student-dashboard.html'">Student</button>
-      <button class="role-btn" type="button" onclick="window.location.href='/instructor-dashboard.html'">Instructor</button>
-      <button class="role-btn active-admin" type="button" onclick="window.location.href='/admin-dashboard.html'">Admin</button>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Learnly — Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0b;--bg2:#111114;--bg3:#18181c;--bg4:#1e1e24;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#f0efe8;--muted:#9b9a93;--faint:#4a4a4f;
+  --accent:#c4b5fd;--accent-dim:rgba(196,181,253,0.12);--accent-dim2:rgba(196,181,253,0.06);
+  --green:#c8f135;--green-dim:rgba(200,241,53,0.1);--green-dim2:rgba(200,241,53,0.05);
+  --gold:#e8c87a;--gold-dim:rgba(232,200,122,0.1);
+  --blue:rgba(100,160,255,0.9);--blue-dim:rgba(100,160,255,0.1);
+  --red:rgba(255,100,100,0.9);--red-dim:rgba(255,100,100,0.1);
+  --orange:rgba(255,160,60,0.9);--orange-dim:rgba(255,160,60,0.1);
+  --r:12px;--rs:8px;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;-webkit-font-smoothing:antialiased}
+
+.sidebar{width:220px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow-y:auto}
+.sidebar-top{padding:20px 16px;border-bottom:1px solid var(--border)}
+.logo{font-family:'Instrument Serif',serif;font-size:20px;display:flex;align-items:center;gap:6px;color:var(--text);margin-bottom:4px}
+.logo-dot{width:7px;height:7px;background:var(--accent);border-radius:50%;flex-shrink:0}
+.logo-tag{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);padding:2px 8px;background:var(--accent-dim);border-radius:100px;margin-left:auto;font-weight:600}
+.user-card{display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);margin-top:12px}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#c4b5fd,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex-shrink:0}
+.user-name{font-size:13px;font-weight:500}
+.user-role{font-size:11px;color:var(--accent)}
+.nav-section{padding:16px 10px 8px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--faint)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--rs);font-size:13px;color:var(--muted);cursor:pointer;transition:all 0.15s;margin:1px 0}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--accent-dim2);color:var(--accent)}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:0.8}
+.nav-badge{margin-left:auto;font-size:10px;font-weight:600;padding:2px 7px;border-radius:100px}
+.nb-red{background:var(--red-dim);color:var(--red)}
+.nb-orange{background:var(--orange-dim);color:var(--orange)}
+.sidebar-bottom{margin-top:auto;padding:16px;border-top:1px solid var(--border)}
+
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topbar{height:56px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:16px;flex-shrink:0}
+.topbar-title{font-size:15px;font-weight:500;flex:1}
+.topbar-env{background:var(--accent-dim);border:1px solid rgba(196,181,253,0.2);color:var(--accent);font-size:11px;padding:4px 12px;border-radius:100px;font-weight:500}
+.notif-btn{width:34px;height:34px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;position:relative}
+.notif-dot{width:7px;height:7px;background:var(--red);border-radius:50%;position:absolute;top:6px;right:6px;border:1.5px solid var(--bg2)}
+
+.content{flex:1;overflow-y:auto;padding:28px}
+.content::-webkit-scrollbar{width:4px}
+.content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.page{display:none}
+.page.active{display:block}
+
+.greeting{margin-bottom:28px}
+.greeting h1{font-family:'Instrument Serif',serif;font-size:32px;letter-spacing:-0.5px;font-weight:400;margin-bottom:4px}
+.greeting h1 em{font-style:italic;color:var(--accent)}
+.greeting p{font-size:14px;color:var(--muted);font-weight:300}
+
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stats-row-5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px;transition:border-color 0.2s}
+.stat-card:hover{border-color:var(--border2)}
+.stat-label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:10px}
+.stat-val{font-family:'Instrument Serif',serif;font-size:30px;letter-spacing:-1px;line-height:1}
+.stat-delta{font-size:12px;margin-top:6px}
+.delta-up{color:var(--green)}
+.delta-down{color:var(--red)}
+
+.two-col{display:grid;grid-template-columns:1fr 320px;gap:20px;margin-bottom:20px}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:500}
+.card-action{font-size:12px;color:var(--accent);cursor:pointer;transition:opacity 0.15s}
+
+/* TABLE */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{padding:10px 16px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--faint);border-bottom:1px solid var(--border);font-weight:500}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s;cursor:pointer}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:rgba(255,255,255,0.02)}
+td{padding:12px 16px;font-size:13px}
+td.muted{color:var(--muted)}
+.status-pill{display:inline-flex;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:500}
+.pill-active{background:var(--green-dim);color:var(--green)}
+.pill-inactive{background:var(--bg4);color:var(--faint)}
+.pill-suspended{background:var(--red-dim);color:var(--red)}
+.pill-pending{background:var(--orange-dim);color:var(--orange)}
+.pill-verified{background:var(--accent-dim);color:var(--accent)}
+
+/* ROLE BADGE */
+.role-badge{font-size:10px;padding:2px 8px;border-radius:100px;font-weight:500}
+.rb-admin{background:var(--accent-dim);color:var(--accent)}
+.rb-instructor{background:var(--gold-dim);color:var(--gold)}
+.rb-student{background:var(--blue-dim);color:var(--blue)}
+
+/* USER AVATAR */
+.u-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+
+/* ACTION BUTTONS */
+.btn-xs{padding:5px 12px;border-radius:100px;font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;border:1px solid transparent;transition:all 0.15s}
+.btn-primary{background:var(--accent);color:#0a0a0b;border:none}
+.btn-danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,100,100,0.2)}
+.btn-ghost{background:none;border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text)}
+.btn-lg{padding:9px 20px;border-radius:100px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.15s}
+
+/* ALERTS */
+.alert{padding:14px 18px;border-radius:var(--rs);margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;font-size:13px}
+.alert-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.alert-red{background:var(--red-dim);border:1px solid rgba(255,100,100,0.15);color:var(--text)}
+.alert-orange{background:var(--orange-dim);border:1px solid rgba(255,160,60,0.15);color:var(--text)}
+.alert-blue{background:var(--blue-dim);border:1px solid rgba(100,160,255,0.15);color:var(--text)}
+.alert-title{font-weight:500;margin-bottom:2px;font-size:13px}
+.alert-desc{font-size:12px;color:var(--muted);line-height:1.4}
+.alert-actions{display:flex;gap:8px;margin-top:8px}
+
+/* SYSTEM HEALTH */
+.health-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.health-item{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:14px}
+.health-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.health-name{font-size:12px;font-weight:500}
+.health-status{width:8px;height:8px;border-radius:50%}
+.hs-ok{background:var(--green)}
+.hs-warn{background:var(--gold)}
+.hs-error{background:var(--red)}
+.health-val{font-family:'Instrument Serif',serif;font-size:22px;letter-spacing:-0.5px}
+.health-unit{font-size:11px;color:var(--muted);margin-left:2px}
+.health-bar-bg{height:4px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;margin-top:8px}
+.health-bar-fill{height:100%;border-radius:2px}
+.hb-green{background:var(--green)}
+.hb-amber{background:var(--gold)}
+.hb-red{background:var(--red)}
+
+/* LOGS */
+.log-item{padding:10px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);font-size:12px;font-family:monospace}
+.log-item:last-child{border-bottom:none}
+.log-time{color:var(--faint);flex-shrink:0;width:80px}
+.log-level{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;flex-shrink:0;width:50px;text-align:center}
+.ll-info{background:var(--blue-dim);color:var(--blue)}
+.ll-warn{background:var(--orange-dim);color:var(--orange)}
+.ll-error{background:var(--red-dim);color:var(--red)}
+.ll-ok{background:var(--green-dim);color:var(--green)}
+.log-msg{color:var(--muted);flex:1}
+.log-user{color:var(--faint);flex-shrink:0}
+
+/* SETTINGS */
+.settings-section{margin-bottom:20px}
+.form-row{padding:15px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.form-row:last-child{border-bottom:none}
+.form-label{font-size:13px;font-weight:500;margin-bottom:2px}
+.form-hint{font-size:12px;color:var(--muted)}
+.form-input{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:8px 12px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;width:200px}
+.toggle{width:40px;height:22px;background:var(--border2);border-radius:100px;position:relative;cursor:pointer;transition:background 0.2s}
+.toggle.on{background:var(--accent)}
+.toggle::after{content:'';width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:transform 0.2s}
+.toggle.on::after{transform:translateX(18px)}
+
+/* PLAN CARDS */
+.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+.plan-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:24px;transition:border-color 0.2s}
+.plan-card:hover{border-color:var(--border2)}
+.plan-card.current{border-color:rgba(196,181,253,0.3);background:var(--accent-dim2)}
+.plan-name{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px}
+.plan-price{font-family:'Instrument Serif',serif;font-size:36px;letter-spacing:-1px;margin-bottom:4px}
+.plan-cycle{font-size:12px;color:var(--muted)}
+.plan-features{margin-top:16px;display:flex;flex-direction:column;gap:8px}
+.plan-feat{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.plan-feat-check{color:var(--green);font-size:12px}
+
+/* MINI BAR CHART */
+.mini-chart{display:flex;align-items:flex-end;gap:4px;height:60px;padding:0 20px 16px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar-fill{width:100%;border-radius:3px 3px 0 0;background:var(--accent-dim)}
+.bar-fill.highlight{background:var(--accent)}
+.bar-label{font-size:9px;color:var(--faint)}
+
+/* PERMISSIONS */
+.perm-row{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.perm-row:last-child{border-bottom:none}
+.perm-name{font-size:13px;font-weight:500;margin-bottom:2px}
+.perm-desc{font-size:12px;color:var(--muted)}
+.perm-toggles{display:flex;gap:16px;align-items:center}
+.perm-toggle-label{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:0.3px}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-top">
+    <div class="logo"><span class="logo-dot"></span>Learnly<span class="logo-tag">Admin</span></div>
+    <div class="user-card">
+      <div class="avatar">SA</div>
+      <div>
+        <div class="user-name">Sam Adeyemi</div>
+        <div class="user-role">Super Admin</div>
+      </div>
     </div>
+  </div>
 
-    <div class="app">
-      <div class="sidebar">
-        <div class="sidebar-head">
-          <a class="logo" href="/"><span class="logo-dot"></span>Learnly</a>
-          <div class="user-chip">
-            <div class="avatar av-admin" id="avatar-text">AD</div>
-            <div>
-              <div class="user-name" id="user-name">Admin</div>
-              <div class="user-role">Administrator</div>
-            </div>
-          </div>
-        </div>
+  <div class="nav-section">Platform</div>
+  <div class="nav-item active" onclick="showPage('dashboard',this)">
+    <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" fill="currentColor"/><rect x="9" y="2" width="5" height="5" rx="1" fill="currentColor"/><rect x="2" y="9" width="5" height="5" rx="1" fill="currentColor"/><rect x="9" y="9" width="5" height="5" rx="1" fill="currentColor"/></svg>
+    Overview
+  </div>
+  <div class="nav-item" onclick="showPage('users',this)">
+    <svg viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M2 13c0-2.2 1.8-4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="7" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M10 13c0-1.7 1.3-3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    Users
+  </div>
+  <div class="nav-item" onclick="showPage('courses',this)">
+    <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="8" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="10" height="2" rx="1" fill="currentColor"/></svg>
+    Courses
+  </div>
+  <div class="nav-item" onclick="showPage('analytics',this)">
+    <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="9" width="3" height="5" rx="1" fill="currentColor"/><rect x="6.5" y="5" width="3" height="9" rx="1" fill="currentColor"/><rect x="11" y="2" width="3" height="12" rx="1" fill="currentColor"/></svg>
+    Analytics
+  </div>
 
-        <div class="nav-section">Platform</div>
-        <div class="nav-item active" data-target="overview">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="9" y="2" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="2" y="9" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="9" y="9" width="5" height="5" rx="1.5" fill="currentColor"/></svg>
-          Overview
-        </div>
-        <div class="nav-item" data-target="users">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M1 14c0-2.8 2.2-5 5-5h5a3 3 0 010 6H6a5 5 0 01-5-5z" stroke="currentColor" stroke-width="1.5"/></svg>
-          Users
-          <span class="nav-badge badge-accent" id="badge-users">0</span>
-        </div>
-        <div class="nav-item" data-target="courses">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 14h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Courses
-          <span class="nav-badge badge-accent" id="badge-courses">0</span>
-        </div>
-        <div class="nav-item" data-target="system">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>
-          System
-          <span class="nav-badge badge-red" id="badge-errors">0</span>
-        </div>
+  <div class="nav-section">Operations</div>
+  <div class="nav-item" onclick="showPage('alerts',this)">
+    <svg viewBox="0 0 16 16" fill="none"><path d="M8 2a5 5 0 00-5 5v2l-1 2h12l-1-2V7a5 5 0 00-5-5zM6.5 13a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    Alerts
+    <span class="nav-badge nb-red">3</span>
+  </div>
+  <div class="nav-item" onclick="showPage('system',this)">
+    <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>
+    System Health
+  </div>
+  <div class="nav-item" onclick="showPage('logs',this)">
+    <svg viewBox="0 0 16 16" fill="none"><path d="M3 4h10M3 8h7M3 12h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    Audit Logs
+    <span class="nav-badge nb-orange">12</span>
+  </div>
 
-        <div class="sidebar-footer">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3.5L10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          <span id="session-label">Session loading...</span>
-        </div>
+  <div class="nav-section">Config</div>
+  <div class="nav-item" onclick="showPage('permissions',this)">
+    <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    Permissions
+  </div>
+  <div class="nav-item" onclick="showPage('billing',this)">
+    <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 8h12" stroke="currentColor" stroke-width="1.5"/></svg>
+    Billing
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="nav-item" onclick="showPage('settings',this)">
+      <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 2v1M8 13v1M2 8h1M13 8h1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Settings
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">Overview</div>
+    <div class="topbar-env">Production</div>
+    <div class="notif-btn">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 2a5 5 0 00-5 5v2l-1 2h12l-1-2V7a5 5 0 00-5-5zM6.5 13a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <div class="notif-dot"></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="page active" id="page-dashboard">
+      <div class="greeting">
+        <h1>Platform <em>Overview</em></h1>
+        <p>Learnly Production · Last synced 2 minutes ago · 3 alerts require attention</p>
       </div>
 
-      <div class="main">
-        <div class="topbar">
-          <div class="topbar-left"><div class="page-title">Admin Control Center</div></div>
-          <div class="topbar-right">
-            <div class="topbar-search">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-              Search anything...
-            </div>
-            <button class="icon-btn" type="button" id="btn-refresh-analytics">
-              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3 13V8M8 13V3M13 13V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-              <span class="notif-dot"></span>
-            </button>
-            <button class="icon-btn" type="button" id="btn-logout">
-              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M6 3H4a2 2 0 00-2 2v6a2 2 0 002 2h2" stroke="currentColor" stroke-width="1.5"/><path d="M10 11l3-3-3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-            </button>
-          </div>
-        </div>
+      <div class="stats-row-5">
+        <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-val">3,842</div><div class="stat-delta delta-up">↑ 214 this week</div></div>
+        <div class="stat-card"><div class="stat-label">Active Courses</div><div class="stat-val">340</div><div class="stat-delta delta-up">↑ 12 this month</div></div>
+        <div class="stat-card"><div class="stat-label">Enrolments</div><div class="stat-val">18.4k</div><div class="stat-delta delta-up">↑ 8% MoM</div></div>
+        <div class="stat-card"><div class="stat-label">Monthly Revenue</div><div class="stat-val" style="color:var(--green)">$42k</div><div class="stat-delta delta-up">↑ 11% MoM</div></div>
+        <div class="stat-card"><div class="stat-label">Open Incidents</div><div class="stat-val" style="color:var(--red)">3</div><div class="stat-delta delta-down">↑ 2 since yesterday</div></div>
+      </div>
 
-        <div class="content">
-          <div class="hero-block" id="overview">
-            <div class="hero-title" id="hero-title">Platform overview 🛠</div>
-            <div class="hero-sub">All systems and platform metrics in one place.</div>
-          </div>
-
-          <div id="alerts">
-            <div class="alert alert-info"><span>ℹ️</span><div>Refreshing platform analytics and recent operational signals.</div></div>
-          </div>
-
-          <div class="stat-grid stat-grid-4">
-            <div class="stat-card">
-              <div class="stat-top"><div class="stat-icon" style="background:var(--purple-dim)">👥</div><span class="stat-delta delta-up" id="delta-users">live</span></div>
-              <div class="stat-val" id="stat-users">0</div>
-              <div class="stat-label">Total users</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-top"><div class="stat-icon" style="background:var(--blue-dim)">📘</div><span class="stat-delta delta-up" id="delta-courses">catalog</span></div>
-              <div class="stat-val" id="stat-courses">0</div>
-              <div class="stat-label">Total courses</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-top"><div class="stat-icon" style="background:var(--teal-dim)">🔄</div><span class="stat-delta delta-up" id="delta-submissions">healthy</span></div>
-              <div class="stat-val" id="stat-submissions">0</div>
-              <div class="stat-label">Submissions</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-top"><div class="stat-icon" style="background:var(--red-dim)">🚨</div><span class="stat-delta delta-down" id="delta-uptime">watch</span></div>
-              <div class="stat-val" id="stat-uptime">99.2%</div>
-              <div class="stat-label">Uptime (simulated)</div>
+      <div class="two-col">
+        <div>
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-header"><div class="card-title">Active alerts</div><div class="card-action" onclick="showPage('alerts',document.querySelectorAll('.nav-item')[4])">View all →</div></div>
+            <div style="padding:16px">
+              <div class="alert alert-red"><div class="alert-icon">🚨</div><div><div class="alert-title">Login failure spike detected</div><div class="alert-desc">2,400+ failed login attempts in the last hour. Possible brute force on accounts: maria.kim, rina.tanaka. IP: 185.220.101.x blocked automatically.</div><div class="alert-actions"><button class="btn-xs btn-danger">Block IP range</button><button class="btn-xs btn-ghost">Investigate</button></div></div></div>
+              <div class="alert alert-orange"><div class="alert-icon">⚠️</div><div><div class="alert-title">Database CPU at 89%</div><div class="alert-desc">Primary database CPU has exceeded 85% threshold for 12 minutes. Query load from bulk quiz grading job may be the cause.</div><div class="alert-actions"><button class="btn-xs btn-ghost">View queries</button><button class="btn-xs btn-ghost">Scale up</button></div></div></div>
+              <div class="alert alert-blue"><div class="alert-icon">ℹ️</div><div><div class="alert-title">3 instructor verification requests pending</div><div class="alert-desc">New instructors awaiting credential verification: Dr. Y. Abara, Prof. K. Singh, Ms. L. Chen. Pending for 48h.</div><div class="alert-actions"><button class="btn-xs btn-primary">Review requests</button></div></div></div>
             </div>
           </div>
 
-          <div class="grid-3-1" id="users">
-            <div class="card">
-              <div class="card-head">
-                <div><div class="card-title">Recent user registrations</div><div class="card-sub">Manage platform accounts</div></div>
-                <button class="sec-action" type="button" id="btn-refresh-users">Refresh</button>
-              </div>
-              <table class="table">
-                <thead><tr><th>User</th><th>Role</th><th>Joined</th><th>Action</th></tr></thead>
-                <tbody id="user-table-body"></tbody>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Recent signups</div><div class="card-action" onclick="showPage('users',document.querySelectorAll('.nav-item')[1])">View all users →</div></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Name</th><th>Role</th><th>Joined</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                  <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="u-av" style="background:var(--blue-dim);color:var(--blue)">NK</div>Nadia Kowalski</div></td><td><span class="role-badge rb-student">Student</span></td><td class="muted">2m ago</td><td><span class="status-pill pill-active">Active</span></td><td><button class="btn-xs btn-ghost">View</button></td></tr>
+                  <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="u-av" style="background:var(--gold-dim);color:var(--gold)">YA</div>Dr. Y. Abara</div></td><td><span class="role-badge rb-instructor">Instructor</span></td><td class="muted">1h ago</td><td><span class="status-pill pill-pending">Pending</span></td><td><button class="btn-xs btn-primary">Verify</button></td></tr>
+                  <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="u-av" style="background:var(--green-dim);color:var(--green)">TM</div>Takeshi Mori</div></td><td><span class="role-badge rb-student">Student</span></td><td class="muted">3h ago</td><td><span class="status-pill pill-active">Active</span></td><td><button class="btn-xs btn-ghost">View</button></td></tr>
+                  <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="u-av" style="background:var(--red-dim);color:var(--red)">MK</div>Maria Kim</div></td><td><span class="role-badge rb-student">Student</span></td><td class="muted">Yesterday</td><td><span class="status-pill pill-suspended">Flagged</span></td><td><button class="btn-xs btn-danger">Review</button></td></tr>
+                </tbody>
               </table>
-              <div class="status" id="users-status"></div>
             </div>
+          </div>
+        </div>
 
-            <div class="card">
-              <div class="card-head"><div class="card-title">Create user</div></div>
-              <div class="card-pad">
-                <form id="create-user-form" class="inline-form">
-                  <div>
-                    <label for="new-user-name">Name</label>
-                    <input id="new-user-name" required />
-                  </div>
-                  <div>
-                    <label for="new-user-email">Email</label>
-                    <input id="new-user-email" type="email" required />
-                  </div>
-                  <div class="field-row two">
-                    <div>
-                      <label for="new-user-password">Password</label>
-                      <input id="new-user-password" type="password" required />
-                    </div>
-                    <div>
-                      <label for="new-user-role">Role</label>
-                      <select id="new-user-role">
-                        <option value="student">student</option>
-                        <option value="instructor">instructor</option>
-                        <option value="admin">admin</option>
-                      </select>
-                    </div>
-                  </div>
-                  <button class="primary-btn" type="submit">Create user</button>
-                  <div class="status" id="create-user-status"></div>
-                </form>
-              </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card">
+            <div class="card-header"><div class="card-title">System health</div><div class="card-action" onclick="showPage('system',document.querySelectorAll('.nav-item')[5])">Details →</div></div>
+            <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+              <div class="health-item"><div class="health-top"><span class="health-name">API Server</span><div class="health-status hs-ok"></div></div><div class="health-val">12<span class="health-unit">ms avg</span></div><div class="health-bar-bg"><div class="health-bar-fill hb-green" style="width:12%"></div></div></div>
+              <div class="health-item"><div class="health-top"><span class="health-name">Database</span><div class="health-status hs-warn"></div></div><div class="health-val">89<span class="health-unit">% CPU</span></div><div class="health-bar-bg"><div class="health-bar-fill hb-amber" style="width:89%"></div></div></div>
+              <div class="health-item"><div class="health-top"><span class="health-name">Storage</span><div class="health-status hs-ok"></div></div><div class="health-val">41<span class="health-unit">% used</span></div><div class="health-bar-bg"><div class="health-bar-fill hb-green" style="width:41%"></div></div></div>
+              <div class="health-item"><div class="health-top"><span class="health-name">Email service</span><div class="health-status hs-ok"></div></div><div class="health-val">99.8<span class="health-unit">% uptime</span></div><div class="health-bar-bg"><div class="health-bar-fill hb-green" style="width:99.8%"></div></div></div>
             </div>
           </div>
 
-          <div class="grid-3" id="system">
-            <div class="card">
-              <div class="card-head"><div class="card-title">User distribution</div></div>
-              <div class="ring-wrap">
-                <svg width="80" height="80" viewBox="0 0 80 80" id="distribution-chart">
-                  <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="14"></circle>
-                </svg>
-                <div class="ring-legend" id="distribution-legend"></div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Users by role</div></div>
+            <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:var(--blue)"></div><span style="font-size:13px;color:var(--muted)">Students</span></div>
+                <span style="font-size:13px;font-weight:500">3,504<span style="font-size:11px;color:var(--faint);margin-left:4px">91%</span></span>
               </div>
-              <div style="padding:0 16px 14px;display:flex;gap:8px">
-                <div style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px;text-align:center">
-                  <div style="font-size:11px;color:var(--muted)">New this week</div>
-                  <div style="font-size:18px;font-family:'Instrument Serif',serif;margin-top:2px;color:var(--teal)" id="new-users-week">0</div>
-                </div>
-                <div style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px;text-align:center">
-                  <div style="font-size:11px;color:var(--muted)">New courses</div>
-                  <div style="font-size:18px;font-family:'Instrument Serif',serif;margin-top:2px" id="new-courses-week">0</div>
-                </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:var(--gold)"></div><span style="font-size:13px;color:var(--muted)">Instructors</span></div>
+                <span style="font-size:13px;font-weight:500">312<span style="font-size:11px;color:var(--faint);margin-left:4px">8%</span></span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></div><span style="font-size:13px;color:var(--muted)">Admins</span></div>
+                <span style="font-size:13px;font-weight:500">26<span style="font-size:11px;color:var(--faint);margin-left:4px">1%</span></span>
+              </div>
+              <div style="height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-top:4px">
+                <div style="height:100%;background:linear-gradient(to right,var(--blue) 91%,var(--gold) 91% 99%,var(--accent) 99%);border-radius:3px"></div>
               </div>
             </div>
-
-            <div class="card">
-              <div class="card-head"><div class="card-title">System health</div></div>
-              <div class="card-pad" id="system-health"></div>
-            </div>
-
-            <div class="card">
-              <div class="card-head"><div class="card-title">Activity stream</div><span class="pill pill-red" id="error-pill">0 issues</span></div>
-              <div class="card-pad" id="activity-stream"></div>
-            </div>
-          </div>
-
-          <div class="card" id="courses">
-            <div class="card-head">
-              <div><div class="card-title">Course catalog</div><div class="card-sub">Review and manage all courses</div></div>
-              <button class="sec-action" type="button" id="btn-refresh-courses">Refresh</button>
-            </div>
-            <table class="table">
-              <thead><tr><th>Course</th><th>Instructor</th><th>Students</th><th>Action</th></tr></thead>
-              <tbody id="course-table-body"></tbody>
-            </table>
-            <div class="status" id="courses-status"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <script src="/lms.js"></script>
-    <script>
-      const $ = (selector) => document.querySelector(selector);
-      const setStatus = (el, msg, type) => {
-        el.textContent = msg || "";
-        el.dataset.type = type || "";
-      };
+    <!-- USERS -->
+    <div class="page" id="page-users">
+      <div class="greeting"><h1>User <em>Management</em></h1><p>3,842 total users · 3 pending verification</p></div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header">
+          <div class="card-title">All users</div>
+          <div style="display:flex;gap:8px">
+            <select style="background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:var(--rs);padding:6px 10px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer"><option>All Roles</option><option>Students</option><option>Instructors</option><option>Admins</option></select>
+            <select style="background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:var(--rs);padding:6px 10px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer"><option>All Status</option><option>Active</option><option>Pending</option><option>Suspended</option></select>
+            <button class="btn-xs btn-primary" style="padding:6px 14px;font-size:12px">+ Invite user</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>User</th><th>Role</th><th>Email</th><th>Joined</th><th>Last Login</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="u-av" style="background:var(--accent-dim);color:var(--accent)">SA</div>Sam Adeyemi</div></td><td><span class="role-badge rb-admin">Admin</span></td><td class="muted">sam@learnly.co</td><td class="muted">Jan 2025</td><td class="muted">Now</td><td><span class="status-pill pill-active">Active</span></td><td><button class="btn-xs btn-ghost">Edit</button></td></tr>
+              <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="u-av" style="background:var(--gold-dim);color:var(--gold)">PN</div>Dr. Priya Nair</div></td><td><span class="role-badge rb-instructor">Instructor</span></td><td class="muted">priya.nair@uni.ac</td><td class="muted">Jan 2026</td><td class="muted">2h ago</td><td><span class="status-pill pill-active">Active</span></td><td><div style="display:flex;gap:6px"><button class="btn-xs btn-ghost">Edit</button><button class="btn-xs btn-danger">Suspend</button></div></td></tr>
+              <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="u-av" style="background:var(--blue-dim);color:var(--blue)">AS</div>Alex Santos</div></td><td><span class="role-badge rb-student">Student</span></td><td class="muted">alex.santos@email.com</td><td class="muted">Feb 2026</td><td class="muted">2h ago</td><td><span class="status-pill pill-active">Active</span></td><td><div style="display:flex;gap:6px"><button class="btn-xs btn-ghost">Edit</button><button class="btn-xs btn-danger">Suspend</button></div></td></tr>
+              <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="u-av" style="background:var(--gold-dim);color:var(--gold)">YA</div>Dr. Y. Abara</div></td><td><span class="role-badge rb-instructor">Instructor</span></td><td class="muted">y.abara@research.org</td><td class="muted">1h ago</td><td class="muted">1h ago</td><td><span class="status-pill pill-pending">Pending</span></td><td><div style="display:flex;gap:6px"><button class="btn-xs btn-primary">Verify</button><button class="btn-xs btn-danger">Reject</button></div></td></tr>
+              <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="u-av" style="background:var(--red-dim);color:var(--red)">MK</div>Maria Kim</div></td><td><span class="role-badge rb-student">Student</span></td><td class="muted">m.kim@gmail.com</td><td class="muted">Feb 2026</td><td class="muted">4 days ago</td><td><span class="status-pill pill-suspended">Flagged</span></td><td><div style="display:flex;gap:6px"><button class="btn-xs btn-ghost">Investigate</button><button class="btn-xs btn-danger">Suspend</button></div></td></tr>
+              <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="u-av" style="background:var(--green-dim);color:var(--green)">JL</div>Jana Lin</div></td><td><span class="role-badge rb-student">Student</span></td><td class="muted">jana.lin@study.com</td><td class="muted">Dec 2025</td><td class="muted">3h ago</td><td><span class="status-pill pill-active">Active</span></td><td><div style="display:flex;gap:6px"><button class="btn-xs btn-ghost">Edit</button></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
-      const state = {
-        me: null,
-        analytics: null,
-        users: [],
-        courses: [],
-      };
+    <!-- COURSES ADMIN -->
+    <div class="page" id="page-courses">
+      <div class="greeting"><h1>Course <em>Catalogue</em></h1><p>340 published · 28 in review · 12 flagged</p></div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">All courses</div>
+          <div style="display:flex;gap:8px">
+            <select style="background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:var(--rs);padding:6px 10px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer"><option>All Status</option><option>Published</option><option>In Review</option><option>Flagged</option><option>Draft</option></select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Course</th><th>Instructor</th><th>Enrolled</th><th>Avg. Score</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr><td><div style="font-size:13px;font-weight:500">Machine Learning Fundamentals</div><div style="font-size:11px;color:var(--muted)">24 lessons</div></td><td class="muted">Dr. Priya Nair</td><td>78</td><td>82%</td><td><span class="status-pill pill-active">Published</span></td><td><div style="display:flex;gap:6px"><button class="btn-xs btn-ghost">View</button><button class="btn-xs btn-danger">Unpublish</button></div></td></tr>
+              <tr><td><div style="font-size:13px;font-weight:500">Advanced NLP & Transformers</div><div style="font-size:11px;color:var(--muted)">18 lessons</div></td><td class="muted">Dr. Priya Nair</td><td>32</td><td>77%</td><td><span class="status-pill pill-active">Published</span></td><td><div style="display:flex;gap:6px"><button class="btn-xs btn-ghost">View</button><button class="btn-xs btn-danger">Unpublish</button></div></td></tr>
+              <tr><td><div style="font-size:13px;font-weight:500">Introduction to Blockchain</div><div style="font-size:11px;color:var(--muted)">10 lessons</div></td><td class="muted">Dr. Y. Abara</td><td>0</td><td>—</td><td><span class="status-pill pill-pending">In Review</span></td><td><div style="display:flex;gap:6px"><button class="btn-xs btn-primary">Approve</button><button class="btn-xs btn-danger">Reject</button></div></td></tr>
+              <tr><td><div style="font-size:13px;font-weight:500">Crypto Trading Masterclass</div><div style="font-size:11px;color:var(--muted)">8 lessons</div></td><td class="muted">T. Wilson (unverified)</td><td>12</td><td>55%</td><td><span class="status-pill pill-suspended">Flagged</span></td><td><div style="display:flex;gap:6px"><button class="btn-xs btn-ghost">Investigate</button><button class="btn-xs btn-danger">Remove</button></div></td></tr>
+              <tr><td><div style="font-size:13px;font-weight:500">Python for Research</div><div style="font-size:11px;color:var(--muted)">14 lessons</div></td><td class="muted">Dr. Priya Nair</td><td>14</td><td>91%</td><td><span class="status-pill pill-active">Published</span></td><td><div style="display:flex;gap:6px"><button class="btn-xs btn-ghost">View</button></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
-      function requireRole(role) {
-        const token = Learnly.loadToken();
-        if (!token) return false;
-        const payload = Learnly.decodeJwt(token);
-        return payload && payload.role === role;
-      }
+    <!-- ANALYTICS -->
+    <div class="page" id="page-analytics">
+      <div class="greeting"><h1>Platform <em>Analytics</em></h1><p>Last 30 days · March 2026</p></div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label">New signups</div><div class="stat-val">214</div><div class="stat-delta delta-up">↑ 34% vs last month</div></div>
+        <div class="stat-card"><div class="stat-label">Quizzes taken</div><div class="stat-val">6,290</div><div class="stat-delta delta-up">↑ 18%</div></div>
+        <div class="stat-card"><div class="stat-label">Certificates issued</div><div class="stat-val">428</div><div class="stat-delta delta-up">↑ 22%</div></div>
+        <div class="stat-card"><div class="stat-label">Churn rate</div><div class="stat-val" style="color:var(--green)">3.2%</div><div class="stat-delta delta-up">↓ 0.8% improvement</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Daily active users — last 7 days</div></div>
+          <div class="mini-chart">
+            <div class="bar-col"><div class="bar-fill" style="height:48px"></div><div class="bar-label">Mon</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:62px"></div><div class="bar-label">Tue</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:54px"></div><div class="bar-label">Wed</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:38px"></div><div class="bar-label">Thu</div></div>
+            <div class="bar-col"><div class="bar-fill highlight" style="height:70px"></div><div class="bar-label">Fri</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:28px"></div><div class="bar-label">Sat</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:22px"></div><div class="bar-label">Sun</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Top courses this month</div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Course</th><th>Enrolments</th></tr></thead>
+              <tbody>
+                <tr><td style="color:var(--accent);font-weight:600">1</td><td style="font-size:13px">ML Fundamentals</td><td class="muted">78</td></tr>
+                <tr><td style="color:var(--muted)">2</td><td style="font-size:13px">React Frontends</td><td class="muted">54</td></tr>
+                <tr><td style="color:var(--muted)">3</td><td style="font-size:13px">Advanced NLP</td><td class="muted">32</td></tr>
+                <tr><td style="color:var(--muted)">4</td><td style="font-size:13px">UI/UX Foundations</td><td class="muted">29</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
 
-      function escapeHtml(value) {
-        return String(value).replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
-      }
+    <!-- ALERTS -->
+    <div class="page" id="page-alerts">
+      <div class="greeting"><h1>Platform <em>Alerts</em></h1><p>3 active incidents · 0 critical outages</p></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="alert alert-red"><div class="alert-icon">🚨</div><div style="flex:1"><div class="alert-title">Login failure spike — possible brute force</div><div class="alert-desc">2,400+ failed attempts in 60min. Source IP: 185.220.101.x blocked. Affected accounts: maria.kim@gmail.com, rina.tanaka@uni.jp. Recommend forcing password reset.</div><div class="alert-actions"><button class="btn-xs btn-danger">Force reset passwords</button><button class="btn-xs btn-ghost">Block IP range</button><button class="btn-xs btn-ghost">Dismiss</button></div></div><div style="font-size:11px;color:var(--faint);flex-shrink:0">2h ago</div></div>
+        <div class="alert alert-orange"><div class="alert-icon">⚠️</div><div style="flex:1"><div class="alert-title">Database CPU critical — 89% sustained</div><div class="alert-desc">Primary DB CPU exceeded 85% for 12+ minutes. Bulk quiz grading job (job_id: 4829) may be the cause. Consider scaling or rate-limiting batch operations.</div><div class="alert-actions"><button class="btn-xs btn-ghost">Kill job</button><button class="btn-xs btn-ghost">Scale instance</button><button class="btn-xs btn-ghost">Dismiss</button></div></div><div style="font-size:11px;color:var(--faint);flex-shrink:0">45m ago</div></div>
+        <div class="alert alert-blue"><div class="alert-icon">ℹ️</div><div style="flex:1"><div class="alert-title">Instructor verification queue: 3 pending for 48h+</div><div class="alert-desc">Dr. Y. Abara, Prof. K. Singh, Ms. L. Chen have been waiting 48h+ for credential verification. SLA target is 24h.</div><div class="alert-actions"><button class="btn-xs btn-primary">Review all</button><button class="btn-xs btn-ghost">Dismiss</button></div></div><div style="font-size:11px;color:var(--faint);flex-shrink:0">2 days ago</div></div>
+      </div>
+    </div>
 
-      function initials(name) {
-        return String(name || "Admin").split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("");
-      }
+    <!-- SYSTEM HEALTH -->
+    <div class="page" id="page-system">
+      <div class="greeting"><h1>System <em>Health</em></h1><p>Real-time infrastructure status</p></div>
+      <div class="three-col">
+        <div class="stat-card"><div class="stat-label">API Uptime (30d)</div><div class="stat-val" style="color:var(--green)">99.94%</div><div class="stat-delta delta-up">2.3 min downtime</div></div>
+        <div class="stat-card"><div class="stat-label">Avg. response time</div><div class="stat-val">12<span style="font-size:16px">ms</span></div><div class="stat-delta delta-up">↓ 3ms from last week</div></div>
+        <div class="stat-card"><div class="stat-label">Error rate</div><div class="stat-val" style="color:var(--green)">0.08%</div><div class="stat-delta" style="color:var(--muted)">Below 0.5% threshold</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Service status</div></div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+            <div class="health-item"><div class="health-top"><span class="health-name">API Server (us-east-1)</span><div class="health-status hs-ok"></div></div><div class="health-val">12<span class="health-unit">ms p50</span></div><div class="health-bar-bg"><div class="health-bar-fill hb-green" style="width:12%"></div></div></div>
+            <div class="health-item"><div class="health-top"><span class="health-name">Primary Database</span><div class="health-status hs-warn"></div></div><div class="health-val">89<span class="health-unit">% CPU</span></div><div class="health-bar-bg"><div class="health-bar-fill hb-amber" style="width:89%"></div></div></div>
+            <div class="health-item"><div class="health-top"><span class="health-name">Redis Cache</span><div class="health-status hs-ok"></div></div><div class="health-val">28<span class="health-unit">% used</span></div><div class="health-bar-bg"><div class="health-bar-fill hb-green" style="width:28%"></div></div></div>
+            <div class="health-item"><div class="health-top"><span class="health-name">File Storage (S3)</span><div class="health-status hs-ok"></div></div><div class="health-val">41<span class="health-unit">% of 10TB</span></div><div class="health-bar-bg"><div class="health-bar-fill hb-green" style="width:41%"></div></div></div>
+            <div class="health-item"><div class="health-top"><span class="health-name">Email (SendGrid)</span><div class="health-status hs-ok"></div></div><div class="health-val">99.8<span class="health-unit">% delivery</span></div><div class="health-bar-bg"><div class="health-bar-fill hb-green" style="width:99.8%"></div></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">CDN & edge nodes</div></div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+            <div class="health-item"><div class="health-top"><span class="health-name">us-east-1 (primary)</span><div class="health-status hs-ok"></div></div><div class="health-val">8<span class="health-unit">ms</span></div></div>
+            <div class="health-item"><div class="health-top"><span class="health-name">eu-west-1</span><div class="health-status hs-ok"></div></div><div class="health-val">22<span class="health-unit">ms</span></div></div>
+            <div class="health-item"><div class="health-top"><span class="health-name">ap-south-1</span><div class="health-status hs-ok"></div></div><div class="health-val">31<span class="health-unit">ms</span></div></div>
+            <div class="health-item"><div class="health-top"><span class="health-name">ap-southeast-1</span><div class="health-status hs-warn"></div></div><div class="health-val">78<span class="health-unit">ms</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-      async function loadProfile() {
-        try {
-          const data = await Learnly.api("/api/auth/me");
-          state.me = data.user;
-          $("#user-name").textContent = data.user.name;
-          $("#avatar-text").textContent = initials(data.user.name);
-          $("#session-label").textContent = `Signed in as ${data.user.email}`;
-        } catch (error) {
-          $("#session-label").textContent = "Session missing or invalid";
-        }
-      }
+    <!-- AUDIT LOGS -->
+    <div class="page" id="page-logs">
+      <div class="greeting"><h1>Audit <em>Logs</em></h1><p>Showing latest 12 events · Real-time</p></div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Recent activity</div><div style="display:flex;gap:8px"><button class="btn-xs btn-ghost">Export CSV</button><button class="btn-xs btn-ghost">Filter</button></div></div>
+        <div class="log-item"><div class="log-time">10:42:03</div><div class="log-level ll-error">ERROR</div><div class="log-msg">Brute force detected — 2,400 failed logins in 60min</div><div class="log-user">system</div></div>
+        <div class="log-item"><div class="log-time">10:41:52</div><div class="log-level ll-warn">WARN</div><div class="log-msg">DB CPU threshold exceeded: 89% (limit: 85%)</div><div class="log-user">system</div></div>
+        <div class="log-item"><div class="log-time">10:38:11</div><div class="log-level ll-info">INFO</div><div class="log-msg">User login: alex.santos@email.com</div><div class="log-user">alex.santos</div></div>
+        <div class="log-item"><div class="log-time">10:35:22</div><div class="log-level ll-info">INFO</div><div class="log-msg">Quiz submitted: ML Module 3 · score: 94%</div><div class="log-user">alex.santos</div></div>
+        <div class="log-item"><div class="log-time">10:22:08</div><div class="log-level ll-ok">OK</div><div class="log-msg">IP blocked: 185.220.101.42 (automated)</div><div class="log-user">system</div></div>
+        <div class="log-item"><div class="log-time">10:18:40</div><div class="log-level ll-info">INFO</div><div class="log-msg">Announcement sent: "Quiz deadline reminder" → 124 students</div><div class="log-user">priya.nair</div></div>
+        <div class="log-item"><div class="log-time">09:54:01</div><div class="log-level ll-info">INFO</div><div class="log-msg">New instructor signup: y.abara@research.org (pending verification)</div><div class="log-user">system</div></div>
+        <div class="log-item"><div class="log-time">09:40:20</div><div class="log-level ll-ok">OK</div><div class="log-msg">Course approved: "Python for Research" by sam.adeyemi</div><div class="log-user">sam.adeyemi</div></div>
+        <div class="log-item"><div class="log-time">08:30:00</div><div class="log-level ll-ok">OK</div><div class="log-msg">Daily backup completed: 3.8GB (us-east-1 → eu-west-1)</div><div class="log-user">system</div></div>
+        <div class="log-item"><div class="log-time">07:15:33</div><div class="log-level ll-warn">WARN</div><div class="log-msg">Failed login: m.kim@gmail.com (3rd attempt)</div><div class="log-user">anonymous</div></div>
+        <div class="log-item"><div class="log-time">06:00:00</div><div class="log-level ll-ok">OK</div><div class="log-msg">Email digest sent: 1,200 users notified</div><div class="log-user">system</div></div>
+        <div class="log-item"><div class="log-time">00:00:01</div><div class="log-level ll-ok">OK</div><div class="log-msg">Streak reset job completed: 3,842 users processed</div><div class="log-user">cron</div></div>
+      </div>
+    </div>
 
-      function renderAlerts(data) {
-        const alerts = $("#alerts");
-        const submissions = Number(data.totals ? data.totals.submissions : 0);
-        const newUsers = Number(data.last7d ? data.last7d.newUsers : 0);
-        alerts.innerHTML = `
-          <div class="alert alert-danger"><span>🔴</span><div><strong>${submissions > 0 ? Math.min(submissions, 9) : 0} active alerts</strong> detected from recent platform activity. Review authentication and grading endpoints.</div></div>
-          <div class="alert alert-warn"><span>⚠️</span><div><strong>${newUsers}</strong> new users joined in the last 7 days. Monitor onboarding and support volume.</div></div>
-          <div class="alert alert-info"><span>ℹ️</span><div>Analytics refreshed from the live admin API. Use the tables below to manage users and courses.</div></div>
-        `;
-      }
+    <!-- PERMISSIONS -->
+    <div class="page" id="page-permissions">
+      <div class="greeting"><h1>Role <em>Permissions</em></h1><p>Control what each role can access and modify</p></div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Permission matrix</div>
+          <div style="display:flex;gap:16px;font-size:11px;color:var(--muted)">
+            <span style="color:var(--blue)">● Student</span>
+            <span style="color:var(--gold)">● Instructor</span>
+            <span style="color:var(--accent)">● Admin</span>
+          </div>
+        </div>
+        <div class="perm-row"><div><div class="perm-name">View courses</div><div class="perm-desc">Browse and access course content</div></div><div class="perm-toggles"><div class="perm-toggle-label"><div class="toggle on" onclick="this.classList.toggle('on')" style="background:var(--blue)"></div>Student</div><div class="perm-toggle-label"><div class="toggle on" onclick="this.classList.toggle('on')" style="background:var(--gold)"></div>Instructor</div><div class="perm-toggle-label"><div class="toggle on" onclick="this.classList.toggle('on')"></div>Admin</div></div></div>
+        <div class="perm-row"><div><div class="perm-name">Create courses</div><div class="perm-desc">Publish new courses to the platform</div></div><div class="perm-toggles"><div class="perm-toggle-label"><div class="toggle" onclick="this.classList.toggle('on')"></div>Student</div><div class="perm-toggle-label"><div class="toggle on" onclick="this.classList.toggle('on')" style="background:var(--gold)"></div>Instructor</div><div class="perm-toggle-label"><div class="toggle on" onclick="this.classList.toggle('on')"></div>Admin</div></div></div>
+        <div class="perm-row"><div><div class="perm-name">Take quizzes</div><div class="perm-desc">Submit quiz answers and see scores</div></div><div class="perm-toggles"><div class="perm-toggle-label"><div class="toggle on" onclick="this.classList.toggle('on')" style="background:var(--blue)"></div>Student</div><div class="perm-toggle-label"><div class="toggle" onclick="this.classList.toggle('on')"></div>Instructor</div><div class="perm-toggle-label"><div class="toggle on" onclick="this.classList.toggle('on')"></div>Admin</div></div></div>
+        <div class="perm-row"><div><div class="perm-name">Grade submissions</div><div class="perm-desc">Review and grade student work</div></div><div class="perm-toggles"><div class="perm-toggle-label"><div class="toggle" onclick="this.classList.toggle('on')"></div>Student</div><div class="perm-toggle-label"><div class="toggle on" onclick="this.classList.toggle('on')" style="background:var(--gold)"></div>Instructor</div><div class="perm-toggle-label"><div class="toggle on" onclick="this.classList.toggle('on')"></div>Admin</div></div></div>
+        <div class="perm-row"><div><div class="perm-name">Manage users</div><div class="perm-desc">Create, suspend, or delete accounts</div></div><div class="perm-toggles"><div class="perm-toggle-label"><div class="toggle" onclick="this.classList.toggle('on')"></div>Student</div><div class="perm-toggle-label"><div class="toggle" onclick="this.classList.toggle('on')"></div>Instructor</div><div class="perm-toggle-label"><div class="toggle on" onclick="this.classList.toggle('on')"></div>Admin</div></div></div>
+        <div class="perm-row"><div><div class="perm-name">View audit logs</div><div class="perm-desc">Access system and activity logs</div></div><div class="perm-toggles"><div class="perm-toggle-label"><div class="toggle" onclick="this.classList.toggle('on')"></div>Student</div><div class="perm-toggle-label"><div class="toggle" onclick="this.classList.toggle('on')"></div>Instructor</div><div class="perm-toggle-label"><div class="toggle on" onclick="this.classList.toggle('on')"></div>Admin</div></div></div>
+      </div>
+    </div>
 
-      function renderAnalytics(data) {
-        const usersByRole = data.usersByRole || {};
-        const totalUsers = Object.values(usersByRole).reduce((sum, count) => sum + Number(count || 0), 0);
-        $("#stat-users").textContent = totalUsers.toLocaleString();
-        $("#delta-users").textContent = `${Number(data.last7d ? data.last7d.newUsers : 0)} this week`;
-        $("#stat-courses").textContent = String(data.totals ? data.totals.courses : 0);
-        $("#delta-courses").textContent = `${Number(data.last7d ? data.last7d.newCourses : 0)} new`;
-        $("#stat-submissions").textContent = String(data.totals ? data.totals.submissions : 0);
-        $("#delta-submissions").textContent = `${Number(data.last7d ? data.last7d.submissions : 0)} this week`;
+    <!-- BILLING -->
+    <div class="page" id="page-billing">
+      <div class="greeting"><h1>Billing & <em>Plans</em></h1><p>Currently on Enterprise plan · Next renewal Apr 1, 2026</p></div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label">MRR</div><div class="stat-val" style="color:var(--green)">$42k</div><div class="stat-delta delta-up">↑ 11% MoM</div></div>
+        <div class="stat-card"><div class="stat-label">ARR</div><div class="stat-val" style="color:var(--green)">$504k</div><div class="stat-delta delta-up">↑ 9% YoY</div></div>
+        <div class="stat-card"><div class="stat-label">Avg. plan value</div><div class="stat-val">$24</div><div class="stat-delta" style="color:var(--muted)">Per user/month</div></div>
+        <div class="stat-card"><div class="stat-label">Overdue invoices</div><div class="stat-val" style="color:var(--red)">2</div><div class="stat-delta delta-down">↑ Needs action</div></div>
+      </div>
+      <div class="plan-grid">
+        <div class="plan-card"><div class="plan-name">Free</div><div class="plan-price">$0</div><div class="plan-cycle">/ month</div><div class="plan-features"><div class="plan-feat"><span class="plan-feat-check">✓</span>Up to 3 courses</div><div class="plan-feat"><span class="plan-feat-check">✓</span>Basic quizzes</div><div class="plan-feat" style="color:var(--faint)">✗ Analytics</div><div class="plan-feat" style="color:var(--faint)">✗ Priority support</div></div></div>
+        <div class="plan-card"><div class="plan-name">Pro</div><div class="plan-price">$24</div><div class="plan-cycle">/ user / month</div><div class="plan-features"><div class="plan-feat"><span class="plan-feat-check">✓</span>Unlimited courses</div><div class="plan-feat"><span class="plan-feat-check">✓</span>Advanced quizzes</div><div class="plan-feat"><span class="plan-feat-check">✓</span>Analytics dashboard</div><div class="plan-feat" style="color:var(--faint)">✗ White label</div></div></div>
+        <div class="plan-card current"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="plan-name">Enterprise</div><div class="plan-price">Custom</div><div class="plan-cycle">negotiated</div></div><span style="font-size:10px;background:var(--accent-dim);color:var(--accent);padding:3px 10px;border-radius:100px;font-weight:600">Current plan</span></div><div class="plan-features"><div class="plan-feat"><span class="plan-feat-check">✓</span>Everything in Pro</div><div class="plan-feat"><span class="plan-feat-check">✓</span>White label branding</div><div class="plan-feat"><span class="plan-feat-check">✓</span>SLA guarantee</div><div class="plan-feat"><span class="plan-feat-check">✓</span>Dedicated support</div></div></div>
+      </div>
+    </div>
 
-        $("#badge-users").textContent = totalUsers.toLocaleString();
-        $("#badge-courses").textContent = String(data.totals ? data.totals.courses : 0);
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="greeting"><h1>Platform <em>Settings</em></h1></div>
+      <div class="card settings-section" style="max-width:720px">
+        <div class="card-header"><div class="card-title">General</div></div>
+        <div class="form-row"><div><div class="form-label">Platform name</div><div class="form-hint">Shown in emails and the browser tab</div></div><input class="form-input" value="Learnly"></div>
+        <div class="form-row"><div><div class="form-label">Support email</div></div><input class="form-input" value="support@learnly.co"></div>
+        <div class="form-row"><div><div class="form-label">Default timezone</div></div><input class="form-input" value="UTC"></div>
+        <div style="padding:16px 20px"><button class="btn-lg btn-primary">Save</button></div>
+      </div>
+      <div class="card settings-section" style="max-width:720px;margin-top:16px">
+        <div class="card-header"><div class="card-title">Security</div></div>
+        <div class="form-row"><div><div class="form-label">Enforce 2FA for admins</div><div class="form-hint">All admin accounts must use two-factor auth</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="form-row"><div><div class="form-label">Auto-suspend after failed logins</div><div class="form-hint">Suspend after 10 failed attempts</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="form-row"><div><div class="form-label">Allow public course browsing</div><div class="form-hint">Non-logged-in users can see the catalogue</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="form-row"><div><div class="form-label">Instructor self-signup</div><div class="form-hint">Require admin approval for new instructors</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+    </div>
 
-        const legend = $("#distribution-legend");
-        legend.innerHTML = "";
-        [
-          { key: "student", color: "var(--blue)", label: "Students" },
-          { key: "instructor", color: "var(--gold)", label: "Instructors" },
-          { key: "admin", color: "var(--purple)", label: "Admins" },
-        ].forEach((item) => {
-          const row = document.createElement("div");
-          row.className = "ring-item";
-          row.innerHTML = `<div class="ring-swatch" style="background:${item.color}"></div><span style="color:var(--muted)">${item.label}</span><span class="ring-val">${Number(usersByRole[item.key] || 0)}</span>`;
-          legend.appendChild(row);
-        });
+  </div>
+</div>
 
-        const chart = $("#distribution-chart");
-        chart.innerHTML = '<circle cx="40" cy="40" r="30" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="14"></circle>';
-        const total = Math.max(1, totalUsers);
-        let offset = 0;
-        [
-          { key: "student", color: "#6aa3f5" },
-          { key: "instructor", color: "#e8c87a" },
-          { key: "admin", color: "#b07ef5" },
-        ].forEach((item) => {
-          const fraction = Number(usersByRole[item.key] || 0) / total;
-          const length = Math.max(0, Math.round(188 * fraction));
-          const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-          circle.setAttribute("cx", "40");
-          circle.setAttribute("cy", "40");
-          circle.setAttribute("r", "30");
-          circle.setAttribute("fill", "none");
-          circle.setAttribute("stroke", item.color);
-          circle.setAttribute("stroke-width", "14");
-          circle.setAttribute("stroke-dasharray", `${length} ${188 - length}`);
-          circle.setAttribute("stroke-dashoffset", String(-offset));
-          circle.setAttribute("transform", "rotate(-90 40 40)");
-          chart.appendChild(circle);
-          offset += length;
-        });
-
-        $("#new-users-week").textContent = `+${Number(data.last7d ? data.last7d.newUsers : 0)}`;
-        $("#new-courses-week").textContent = `+${Number(data.last7d ? data.last7d.newCourses : 0)}`;
-        renderAlerts(data);
-        renderSystemHealth(data);
-        renderActivityStream(data);
-      }
-
-      function renderSystemHealth(data) {
-        const submissions = Number(data.totals ? data.totals.submissions : 0);
-        const courses = Number(data.totals ? data.totals.courses : 0);
-        const html = [
-          { label: "CPU Usage", value: `${30 + (submissions % 35)}%`, color: "var(--teal)", width: 30 + (submissions % 35) },
-          { label: "Memory", value: `${40 + (courses % 30)}%`, color: "var(--gold)", width: 40 + (courses % 30) },
-          { label: "DB CPU", value: `${55 + (submissions % 25)}%`, color: "var(--red)", width: 55 + (submissions % 25) },
-          { label: "Disk", value: `${20 + (courses % 25)}%`, color: "var(--teal)", width: 20 + (courses % 25) },
-          { label: "API Latency", value: `${70 + (submissions % 40)}ms`, color: "var(--teal)" },
-          { label: "Active sessions", value: `${100 + submissions}` },
-        ];
-
-        $("#system-health").innerHTML = html
-          .map((item) => `
-            <div class="system-item">
-              <div>
-                <div class="system-label">${item.label}</div>
-                ${item.width ? `<div class="meter" style="width:120px"><div class="meter-fill" style="width:${item.width}%;background:${item.color}"></div></div>` : ""}
-              </div>
-              <div class="system-val" style="${item.color ? `color:${item.color}` : ""}">${item.value}</div>
-            </div>
-          `)
-          .join("");
-      }
-
-      function renderActivityStream(data) {
-        const rows = [
-          { color: "var(--red)", text: `401 Unauthorized spikes on quiz endpoints`, time: `${Math.max(1, Number(data.last7d ? data.last7d.submissions : 1))}h ago` },
-          { color: "var(--red)", text: `Course enrollment actions increased this week`, time: "2h ago" },
-          { color: "var(--gold)", text: `Review onboarding flow for new users`, time: "5h ago" },
-          { color: "var(--blue)", text: `Admin analytics refreshed successfully`, time: "just now" },
-        ];
-        $("#activity-stream").innerHTML = rows
-          .map((row) => `
-            <div class="activity-item">
-              <div class="activity-dot" style="background:${row.color}"></div>
-              <div><div class="activity-text" style="font-size:12px">${escapeHtml(row.text)}</div><div class="activity-time">${row.time}</div></div>
-            </div>
-          `)
-          .join("");
-        $("#error-pill").textContent = `${rows.length} issues`;
-        $("#badge-errors").textContent = String(rows.length);
-      }
-
-      async function refreshAnalytics() {
-        try {
-          const data = await Learnly.api("/api/admin/analytics");
-          state.analytics = data;
-          renderAnalytics(data);
-        } catch (error) {
-          $("#alerts").innerHTML = `<div class="alert alert-danger"><span>🔴</span><div>${escapeHtml(error.message)}</div></div>`;
-        }
-      }
-
-      async function refreshUsers() {
-        setStatus($("#users-status"), "Loading users...", "");
-        try {
-          const rows = await Learnly.api("/api/admin/users?limit=50");
-          state.users = Array.isArray(rows) ? rows : [];
-          const body = $("#user-table-body");
-          body.innerHTML = "";
-          if (!state.users.length) {
-            body.innerHTML = '<tr><td colspan="4" class="muted">No users found.</td></tr>';
-          } else {
-            state.users.forEach((user) => {
-              const row = document.createElement("tr");
-              row.innerHTML = `
-                <td><div style="font-size:13px;font-weight:500">${escapeHtml(user.name)}</div><div class="muted" style="font-size:11px">${escapeHtml(user.email)}</div></td>
-                <td><span class="pill ${user.role === "admin" ? "pill-purple" : user.role === "instructor" ? "pill-gold" : "pill-blue"}">${escapeHtml(user.role)}</span></td>
-                <td class="muted">${user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}</td>
-                <td><button class="sec-action" type="button">Delete</button></td>
-              `;
-              row.querySelector("button").addEventListener("click", async () => {
-                if (!window.confirm(`Delete user ${user.email}?`)) return;
-                try {
-                  await Learnly.api(`/api/admin/users/${encodeURIComponent(user.id)}`, { method: "DELETE" });
-                  setStatus($("#users-status"), "User deleted.", "ok");
-                  refreshUsers();
-                  refreshAnalytics();
-                } catch (error) {
-                  setStatus($("#users-status"), error.message, "error");
-                }
-              });
-              body.appendChild(row);
-            });
-          }
-          setStatus($("#users-status"), "", "");
-        } catch (error) {
-          setStatus($("#users-status"), error.message, "error");
-        }
-      }
-
-      async function createUser(event) {
-        event.preventDefault();
-        setStatus($("#create-user-status"), "Creating...", "");
-        try {
-          await Learnly.api("/api/admin/users", {
-            method: "POST",
-            json: {
-              name: $("#new-user-name").value.trim(),
-              email: $("#new-user-email").value.trim().toLowerCase(),
-              password: $("#new-user-password").value,
-              role: $("#new-user-role").value,
-            },
-          });
-          setStatus($("#create-user-status"), "User created.", "ok");
-          $("#new-user-name").value = "";
-          $("#new-user-email").value = "";
-          $("#new-user-password").value = "";
-          refreshUsers();
-          refreshAnalytics();
-        } catch (error) {
-          setStatus($("#create-user-status"), error.message, "error");
-        }
-      }
-
-      async function refreshCourses() {
-        setStatus($("#courses-status"), "Loading courses...", "");
-        try {
-          const rows = await Learnly.api("/api/admin/courses?limit=100");
-          state.courses = Array.isArray(rows) ? rows : [];
-          const body = $("#course-table-body");
-          body.innerHTML = "";
-          if (!state.courses.length) {
-            body.innerHTML = '<tr><td colspan="4" class="muted">No courses found.</td></tr>';
-          } else {
-            state.courses.forEach((course) => {
-              const row = document.createElement("tr");
-              row.innerHTML = `
-                <td><div style="font-size:13px;font-weight:500">${escapeHtml(course.title)}</div><div class="muted" style="font-size:11px">#${escapeHtml(course.id)}</div></td>
-                <td>${escapeHtml(course.instructor ? `${course.instructor.name} (${course.instructor.email})` : "Unknown")}</td>
-                <td>${Number(course.studentCount || 0)}</td>
-                <td><button class="sec-action" type="button">Delete</button></td>
-              `;
-              row.querySelector("button").addEventListener("click", async () => {
-                if (!window.confirm(`Delete course ${course.title}?`)) return;
-                try {
-                  await Learnly.api(`/api/admin/courses/${encodeURIComponent(course.id)}`, { method: "DELETE" });
-                  setStatus($("#courses-status"), "Course deleted.", "ok");
-                  refreshCourses();
-                  refreshAnalytics();
-                } catch (error) {
-                  setStatus($("#courses-status"), error.message, "error");
-                }
-              });
-              body.appendChild(row);
-            });
-          }
-          setStatus($("#courses-status"), "", "");
-        } catch (error) {
-          setStatus($("#courses-status"), error.message, "error");
-        }
-      }
-
-      function bindNav() {
-        document.querySelectorAll(".nav-item").forEach((item) => {
-          item.addEventListener("click", () => {
-            document.querySelectorAll(".nav-item").forEach((nav) => nav.classList.remove("active"));
-            item.classList.add("active");
-            const target = document.getElementById(item.dataset.target);
-            if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-          });
-        });
-      }
-
-      function init() {
-        if (!requireRole("admin")) window.location.replace("/dashboard.html");
-        bindNav();
-        $("#btn-refresh-analytics").addEventListener("click", refreshAnalytics);
-        $("#btn-logout").addEventListener("click", () => {
-          Learnly.clearToken();
-          window.location.href = "/signin.html";
-        });
-        $("#btn-refresh-users").addEventListener("click", refreshUsers);
-        $("#btn-refresh-courses").addEventListener("click", refreshCourses);
-        $("#create-user-form").addEventListener("submit", createUser);
-        loadProfile();
-        refreshAnalytics();
-        refreshUsers();
-        refreshCourses();
-      }
-
-      init();
-    </script>
-  </body>
+<script>
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(el && el.classList) el.classList.add('active');
+  const titles={dashboard:'Overview',users:'User Management',courses:'Course Catalogue',analytics:'Analytics',alerts:'Alerts',system:'System Health',logs:'Audit Logs',permissions:'Permissions',billing:'Billing',settings:'Settings'};
+  document.getElementById('page-title').textContent = titles[name]||name;
+}
+</script>
+</body>
 </html>
