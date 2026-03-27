@@ -4,218 +4,247 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Learnly - Student Dashboard</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Instrument+Serif&family=JetBrains+Mono:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/dashboard-theme.css" />
   </head>
   <body>
-    <div class="app-shell">
-      <div class="window-bar">
-        <div class="window-dots">
-          <span class="window-dot red"></span>
-          <span class="window-dot yellow"></span>
-          <span class="window-dot green"></span>
+    <div class="role-bar">
+      <span class="role-label">View as:</span>
+      <button class="role-btn active-student" type="button" onclick="window.location.href='/student-dashboard.html'">Student</button>
+      <button class="role-btn" type="button" onclick="window.location.href='/instructor-dashboard.html'">Instructor</button>
+      <button class="role-btn" type="button" onclick="window.location.href='/admin-dashboard.html'">Admin</button>
+    </div>
+
+    <div class="app">
+      <div class="sidebar">
+        <div class="sidebar-head">
+          <a class="logo" href="/"><span class="logo-dot"></span>Learnly</a>
+          <div class="user-chip">
+            <div class="avatar av-student" id="avatar-text">ST</div>
+            <div>
+              <div class="user-name" id="user-name">Student</div>
+              <div class="user-role" id="user-role">Student · Learnly</div>
+            </div>
+          </div>
         </div>
-        <div class="window-title">localhost:5000 - Student Workspace</div>
+
+        <div class="nav-section">Main</div>
+        <div class="nav-item active" data-target="overview">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="9" y="2" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="2" y="9" width="5" height="5" rx="1.5" fill="currentColor"/><rect x="9" y="9" width="5" height="5" rx="1.5" fill="currentColor"/></svg>
+          Dashboard
+        </div>
+        <div class="nav-item" data-target="courses">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 14h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          My Courses
+          <span class="nav-badge badge-accent" id="badge-courses">0</span>
+        </div>
+        <div class="nav-item" data-target="assignments">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 4a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V4z" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h6M5 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Assignments
+          <span class="nav-badge badge-red" id="badge-pending">0</span>
+        </div>
+        <div class="nav-item" data-target="grades">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 13l3-3 3 2 4-5 2 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Progress
+        </div>
+        <div class="nav-item" data-target="announcements">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M13 7c0 3-2.2 5-5 5a5.5 5.5 0 01-2-.4L2 13l1.4-4A5 5 0 018 2c2.8 0 5 2 5 5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          Announcements
+          <span class="nav-badge badge-red" id="badge-notifications">0</span>
+        </div>
+
+        <div class="sidebar-footer">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3.5L10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span id="session-label">Session loading...</span>
+        </div>
       </div>
 
-      <div class="workspace">
-        <aside class="sidebar">
-          <div class="profile-block">
-            <div class="avatar" id="avatar-initials">ST</div>
-            <div>
-              <div class="profile-name" id="profile-name">Student</div>
-              <div class="profile-role" id="profile-role">Student · Learnly</div>
+      <div class="main">
+        <div class="topbar">
+          <div class="topbar-left">
+            <div class="page-title">Dashboard</div>
+          </div>
+          <div class="topbar-right">
+            <div class="topbar-search">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              Search anything...
+            </div>
+            <button class="icon-btn" type="button" id="btn-refresh-notifs">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 2a4 4 0 014 4v2l1 2H3l1-2V6a4 4 0 014-4z" stroke="currentColor" stroke-width="1.5"/><path d="M6.5 13a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <span class="notif-dot"></span>
+            </button>
+            <button class="icon-btn" type="button" id="btn-logout">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M6 3H4a2 2 0 00-2 2v6a2 2 0 002 2h2" stroke="currentColor" stroke-width="1.5"/><path d="M10 11l3-3-3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="content">
+          <div class="hero-block" id="overview">
+            <div class="hero-title" id="hero-title">Good day</div>
+            <div class="hero-sub" id="hero-sub">Loading your learning workspace...</div>
+          </div>
+
+          <div class="stat-grid stat-grid-4">
+            <div class="stat-card">
+              <div class="stat-top">
+                <div class="stat-icon" style="background:var(--accent-dim)">📚</div>
+                <span class="stat-delta delta-up" id="delta-courses">syncing</span>
+              </div>
+              <div class="stat-val" id="stat-courses">0</div>
+              <div class="stat-label">Enrolled courses</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-top">
+                <div class="stat-icon" style="background:var(--teal-dim)">✅</div>
+                <span class="stat-delta delta-up" id="delta-completed">live</span>
+              </div>
+              <div class="stat-val" id="stat-completed">0</div>
+              <div class="stat-label">Lessons completed</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-top">
+                <div class="stat-icon" style="background:var(--gold-dim)">🏆</div>
+                <span class="stat-delta delta-up" id="delta-score">latest</span>
+              </div>
+              <div class="stat-val" id="stat-score">--</div>
+              <div class="stat-label">Average quiz score</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-top">
+                <div class="stat-icon" style="background:var(--red-dim)">⏰</div>
+                <span class="stat-delta delta-down" id="delta-pending">watch list</span>
+              </div>
+              <div class="stat-val" id="stat-pending">0</div>
+              <div class="stat-label">Pending assignments</div>
             </div>
           </div>
 
-          <div class="nav-list">
-            <button class="nav-button is-active" type="button" data-target="overview">
-              <span class="nav-icon">▦</span>
-              <span>Dashboard</span>
-            </button>
-            <button class="nav-button" type="button" data-target="courses">
-              <span class="nav-icon">☰</span>
-              <span>My Courses</span>
-            </button>
-            <button class="nav-button" type="button" data-target="course-view">
-              <span class="nav-icon">◔</span>
-              <span>Course View</span>
-            </button>
-            <button class="nav-button" type="button" data-target="submissions">
-              <span class="nav-icon">↗</span>
-              <span>Assignments</span>
-            </button>
-            <button class="nav-button" type="button" data-target="notifications">
-              <span class="nav-icon">⌁</span>
-              <span>Announcements</span>
-            </button>
+          <div class="grid-3-1" id="courses">
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <div class="card-title">Continue learning</div>
+                  <div class="card-sub">Pick up where you left off</div>
+                </div>
+                <button class="sec-action" type="button" id="btn-refresh-courses">Refresh</button>
+              </div>
+              <div id="course-list"></div>
+              <div class="status" id="courses-status"></div>
+            </div>
+
+            <div class="card" id="assignments">
+              <div class="card-head">
+                <div class="card-title">Upcoming</div>
+              </div>
+              <div class="card-pad" id="upcoming-list"></div>
+              <div class="status" id="upcoming-status"></div>
+            </div>
           </div>
 
-          <div class="sidebar-footer">
-            <a class="ghost-link" href="/dashboard.html">Role switch</a>
-            <button class="ghost-button" id="btn-logout" type="button">Clear token</button>
+          <div class="grid-3">
+            <div class="card" id="grades">
+              <div class="card-head"><div class="card-title">Overall score</div></div>
+              <div class="score-big">
+                <div class="score-num" style="color:var(--accent)" id="overall-score">--</div>
+                <div class="score-label">Across your graded work</div>
+              </div>
+              <div class="score-bar-wrap">
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px"><span>Progress this month</span><span id="score-foot">No graded submissions yet</span></div>
+                <div class="mini-chart" id="score-chart"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div class="card-title">Course search</div>
+                <button class="sec-action" type="button" id="btn-search">Search</button>
+              </div>
+              <div class="card-pad">
+                <div class="inline-form">
+                  <div>
+                    <label for="course-search">Search courses</label>
+                    <input id="course-search" placeholder="python, ai, design" />
+                  </div>
+                  <div id="search-results" class="stack-list"></div>
+                  <div class="status" id="search-status"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" id="announcements">
+              <div class="card-head">
+                <div class="card-title">Announcements</div>
+                <span class="pill pill-red" id="notif-pill">0 new</span>
+              </div>
+              <div id="notification-list"></div>
+              <div class="status" id="notifications-status"></div>
+            </div>
           </div>
-        </aside>
 
-        <main class="content">
-          <section class="greeting" id="overview">
-            <div>
-              <h1 id="greeting-title">Good day, learner</h1>
-              <p>Track your enrolled courses, submit work, and check feedback from one place.</p>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-head"><div class="card-title">Submit assignment</div></div>
+              <div class="card-pad">
+                <form id="submit-form" class="inline-form">
+                  <div>
+                    <label for="assignment-id">Assignment ID</label>
+                    <input id="assignment-id" required />
+                  </div>
+                  <div>
+                    <label for="submission-text">Response</label>
+                    <textarea id="submission-text" placeholder="Write your answer or attach a file"></textarea>
+                  </div>
+                  <div>
+                    <label for="submission-file">File upload</label>
+                    <input id="submission-file" type="file" />
+                  </div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="primary-btn" type="submit">Submit work</button>
+                  </div>
+                  <div class="status" id="submit-status"></div>
+                </form>
+              </div>
             </div>
-            <div class="session-pill" id="me-pill">Session: checking token...</div>
-          </section>
 
-          <section class="stats-grid">
-            <article class="stat-card">
-              <div class="stat-label">Enrolled</div>
-              <div class="stat-value" id="stat-enrolled">0</div>
-              <div class="stat-foot" id="stat-enrolled-foot">Syncing your courses</div>
-            </article>
-            <article class="stat-card">
-              <div class="stat-label">Pending Work</div>
-              <div class="stat-value" id="stat-pending">0</div>
-              <div class="stat-foot" id="stat-pending-foot">Assignments due soon</div>
-            </article>
-            <article class="stat-card">
-              <div class="stat-label">Avg. Score</div>
-              <div class="stat-value" id="stat-grade">--</div>
-              <div class="stat-foot" id="stat-grade-foot">Latest graded submissions</div>
-            </article>
-          </section>
-
-          <section id="courses">
-            <h2 class="section-title">Continue Learning</h2>
-            <div class="stack" id="my-courses"></div>
-            <div class="status" id="my-status" aria-live="polite"></div>
-          </section>
-
-          <section class="split-grid" style="margin-top: 28px;">
-            <article class="panel-card">
-              <div class="panel-header">
-                <div>
-                  <h2>Find and Enroll</h2>
-                  <div class="panel-note">Search public courses and enroll instantly.</div>
-                </div>
-                <button class="inline-button" id="btn-search" type="button">Search</button>
+            <div class="card">
+              <div class="card-head">
+                <div class="card-title">Check feedback</div>
+                <button class="sec-action" type="button" id="btn-check-grade">Check</button>
               </div>
-              <div class="field-row two">
-                <div>
-                  <label for="q">Search</label>
-                  <input id="q" placeholder="python, design, ai" />
-                </div>
-                <div>
-                  <label for="search-hint">Quick tip</label>
-                  <input id="search-hint" value="Press Search to refresh results" readonly />
-                </div>
-              </div>
-              <div class="status" id="search-status" aria-live="polite"></div>
-              <div class="mini-list" id="search-results"></div>
-            </article>
-
-            <article class="panel-card" id="course-view">
-              <div class="panel-header">
-                <div>
-                  <h2>Course Snapshot</h2>
-                  <div class="panel-note">Load materials and assignments for a course you are enrolled in.</div>
-                </div>
-                <button class="inline-button" id="btn-load-course" type="button">Load</button>
-              </div>
-              <div class="field-row">
-                <div>
-                  <label for="course-id">Course ID</label>
-                  <input id="course-id" placeholder="Paste course id" />
-                </div>
-              </div>
-              <div class="status" id="course-status" aria-live="polite"></div>
-              <div class="mini-list" id="course-out"></div>
-            </article>
-          </section>
-
-          <section class="split-grid" style="margin-top: 28px;" id="submissions">
-            <article class="panel-card">
-              <div class="panel-header">
-                <div>
-                  <h2>Submit Assignment</h2>
-                  <div class="panel-note">Send text, file uploads, or both.</div>
-                </div>
-              </div>
-              <form id="submit-form">
-                <div class="field-row">
+              <div class="card-pad">
+                <div class="inline-form">
                   <div>
-                    <label for="assignmentId">Assignment ID</label>
-                    <input id="assignmentId" required />
+                    <label for="grade-assignment">Assignment ID</label>
+                    <input id="grade-assignment" />
                   </div>
-                  <div>
-                    <label for="text">Text response</label>
-                    <textarea id="text" placeholder="Share your answer or attach a file below"></textarea>
-                  </div>
-                  <div>
-                    <label for="file">File upload</label>
-                    <input id="file" type="file" />
-                  </div>
-                </div>
-                <div class="action-row">
-                  <button class="primary-button" type="submit">Submit work</button>
-                </div>
-                <div class="status" id="submit-status" aria-live="polite"></div>
-              </form>
-            </article>
-
-            <article class="panel-card">
-              <div class="panel-header">
-                <div>
-                  <h2>Grades and Feedback</h2>
-                  <div class="panel-note">Check the latest result for an assignment.</div>
-                </div>
-                <button class="inline-button" id="btn-grade" type="button">Check</button>
-              </div>
-              <div class="field-row">
-                <div>
-                  <label for="grade-assignmentId">Assignment ID</label>
-                  <input id="grade-assignmentId" placeholder="Paste assignment id" />
+                  <div id="grade-output" class="stack-list"></div>
+                  <div class="status" id="grade-status"></div>
                 </div>
               </div>
-              <div class="status" id="grade-status" aria-live="polite"></div>
-              <div class="mini-list" id="grade-out"></div>
-            </article>
-          </section>
-
-          <section style="margin-top: 28px;" id="notifications">
-            <div class="panel-card">
-              <div class="panel-header">
-                <div>
-                  <h2>Announcements</h2>
-                  <div class="panel-note">Assignment updates, grades, and course notifications.</div>
-                </div>
-                <button class="inline-button" id="btn-refresh-n" type="button">Refresh</button>
-              </div>
-              <div class="status" id="n-status" aria-live="polite"></div>
-              <div class="mini-list" id="n-list"></div>
             </div>
-          </section>
-        </main>
+          </div>
+        </div>
       </div>
     </div>
 
     <script src="/lms.js"></script>
     <script>
-      const $ = (s) => document.querySelector(s);
+      const $ = (selector) => document.querySelector(selector);
       const setStatus = (el, msg, type) => {
         el.textContent = msg || "";
         el.dataset.type = type || "";
       };
 
-      const studentState = {
+      const state = {
         me: null,
-        myCourses: [],
-        averageGrade: null,
-        pendingAssignments: 0,
+        courses: [],
+        notifications: [],
+        assignments: [],
+        grades: [],
       };
 
       function requireRole(role) {
@@ -223,6 +252,10 @@
         if (!token) return false;
         const payload = Learnly.decodeJwt(token);
         return payload && payload.role === role;
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
       }
 
       function initials(name) {
@@ -234,300 +267,308 @@
           .join("");
       }
 
-      function greetingForTime() {
+      function getGreeting() {
         const hour = new Date().getHours();
         if (hour < 12) return "Good morning";
         if (hour < 18) return "Good afternoon";
         return "Good evening";
       }
 
-      function escapeHtml(s) {
-        return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+      function progressForCourse(course) {
+        let seed = 0;
+        String(course.id || "").split("").forEach((char) => {
+          seed += char.charCodeAt(0);
+        });
+        return 20 + (seed % 70);
       }
 
-      function hashPercent(id) {
-        const source = String(id || "");
-        let sum = 0;
-        for (let i = 0; i < source.length; i += 1) sum += source.charCodeAt(i);
-        return 28 + (sum % 58);
-      }
-
-      function updateStats() {
-        $("#stat-enrolled").textContent = String(studentState.myCourses.length);
-        $("#stat-enrolled-foot").textContent =
-          studentState.myCourses.length > 0 ? `${studentState.myCourses.length} active course${studentState.myCourses.length === 1 ? "" : "s"}` : "No courses enrolled yet";
-
-        $("#stat-pending").textContent = String(studentState.pendingAssignments);
-        $("#stat-pending-foot").textContent =
-          studentState.pendingAssignments > 0 ? "Assignments waiting for your submission" : "Nothing urgent right now";
-
-        $("#stat-grade").textContent =
-          studentState.averageGrade === null ? "--" : `${Math.round(studentState.averageGrade)}%`;
-        $("#stat-grade-foot").textContent =
-          studentState.averageGrade === null ? "No graded submissions yet" : "Average from graded work";
-      }
-
-      function renderCourses() {
-        const out = $("#my-courses");
-        out.innerHTML = "";
-        if (!studentState.myCourses.length) {
-          out.innerHTML = '<div class="empty-state">No enrollments yet. Use the search panel to join a course.</div>';
+      function renderCourseList() {
+        const root = $("#course-list");
+        root.innerHTML = "";
+        if (!state.courses.length) {
+          root.innerHTML = '<div class="empty-state">No enrolled courses yet. Use search to join one.</div>';
           return;
         }
 
-        studentState.myCourses.forEach((course) => {
-          const progress = hashPercent(course.id);
-          const el = document.createElement("article");
-          el.className = "course-card";
-          el.innerHTML = `
-            <div class="course-icon">${["🧠", "⚛️", "📊", "🎯", "📘"][Number(course.id) % 5]}</div>
-            <div>
-              <div class="course-title">${escapeHtml(course.title)}</div>
-              <div class="course-meta">${escapeHtml(course.instructorName || "Instructor")} · ${Number(course.studentCount || 0)} learners</div>
+        state.courses.forEach((course) => {
+          const progress = progressForCourse(course);
+          const row = document.createElement("div");
+          row.className = "student-row";
+          row.innerHTML = `
+            <div class="s-avatar">${["🧠", "⚛️", "📊", "🔐", "🎯"][Number(course.id) % 5]}</div>
+            <div class="s-name">
+              <div style="font-size:13px;font-weight:500">${escapeHtml(course.title)}</div>
+              <div style="font-size:11px;color:var(--muted)">${escapeHtml(course.instructorName || "Instructor")} · ${Number(course.studentCount || 0)} learners</div>
             </div>
-            <div class="course-progress">
-              <div class="progress-track"><div class="progress-fill" style="width:${progress}%"></div></div>
-              <div class="progress-label">${progress}%</div>
+            <div class="s-prog">
+              <div class="prog-wrap">
+                <div class="prog-track"><div class="prog-fill" style="width:${progress}%"></div></div>
+                <span class="prog-pct">${progress}%</span>
+              </div>
             </div>
           `;
-          out.appendChild(el);
+          root.appendChild(row);
+        });
+      }
+
+      function renderUpcoming() {
+        const root = $("#upcoming-list");
+        root.innerHTML = "";
+        if (!state.assignments.length) {
+          root.innerHTML = '<div class="empty-state">No upcoming assignments right now.</div>';
+          return;
+        }
+
+        state.assignments.slice(0, 4).forEach((assignment) => {
+          const due = new Date(assignment.dueDate);
+          const month = due.toLocaleString("en-US", { month: "short" });
+          const item = document.createElement("div");
+          item.className = "upcoming-item";
+          item.innerHTML = `
+            <div class="date-badge">
+              <div class="date-day">${due.getDate()}</div>
+              <div class="date-mon">${month}</div>
+            </div>
+            <div class="upcoming-info">
+              <div class="upcoming-title">${escapeHtml(assignment.title)}</div>
+              <div class="upcoming-sub">Assignment #${escapeHtml(assignment.id)}</div>
+            </div>
+            <span class="pill ${Date.now() > due.getTime() ? "pill-red" : "pill-muted"}">${Date.now() > due.getTime() ? "Due" : "Upcoming"}</span>
+          `;
+          root.appendChild(item);
+        });
+      }
+
+      function renderNotifications() {
+        const root = $("#notification-list");
+        root.innerHTML = "";
+        if (!state.notifications.length) {
+          root.innerHTML = '<div class="empty-state">No announcements yet.</div>';
+          $("#notif-pill").textContent = "0 new";
+          $("#badge-notifications").textContent = "0";
+          return;
+        }
+
+        let unread = 0;
+        state.notifications.slice(0, 4).forEach((notification) => {
+          if (!notification.readAt) unread += 1;
+          const item = document.createElement("div");
+          item.className = "ann-item";
+          item.innerHTML = `
+            <div class="ann-head">
+              <div class="ann-title">${notification.readAt ? "Update" : "New update"}</div>
+              <div class="ann-time">${new Date(notification.createdAt).toLocaleDateString()}</div>
+            </div>
+            <div class="ann-body">${escapeHtml(notification.message)}</div>
+          `;
+          root.appendChild(item);
+        });
+        $("#notif-pill").textContent = `${unread} new`;
+        $("#badge-notifications").textContent = String(unread);
+      }
+
+      function renderScore() {
+        const chart = $("#score-chart");
+        chart.innerHTML = "";
+        if (!state.grades.length) {
+          $("#stat-score").textContent = "--";
+          $("#overall-score").textContent = "--";
+          $("#score-foot").textContent = "No graded submissions yet";
+          [35, 44, 52, 48, 56, 63, 58].forEach((height) => {
+            const bar = document.createElement("div");
+            bar.className = "bar";
+            bar.style.height = `${height}%`;
+            bar.style.background = "var(--bg4)";
+            bar.style.border = "1px solid var(--border)";
+            chart.appendChild(bar);
+          });
+          return;
+        }
+
+        const average = Math.round(state.grades.reduce((sum, row) => sum + row, 0) / state.grades.length);
+        $("#stat-score").textContent = `${average}%`;
+        $("#overall-score").textContent = `${average}%`;
+        $("#score-foot").textContent = `${state.grades.length} graded submission(s)`;
+
+        state.grades.slice(-7).forEach((score, index) => {
+          const bar = document.createElement("div");
+          bar.className = "bar";
+          bar.style.height = `${Math.max(18, Math.min(100, score))}%`;
+          bar.style.background = index === state.grades.slice(-7).length - 1 ? "var(--accent)" : "var(--accent-dim)";
+          chart.appendChild(bar);
         });
       }
 
       function renderSearchResults(rows) {
-        const out = $("#search-results");
-        out.innerHTML = "";
-        if (!rows || !rows.length) {
-          out.innerHTML = '<div class="empty-state">No courses found for that search.</div>';
+        const root = $("#search-results");
+        root.innerHTML = "";
+        if (!rows.length) {
+          root.innerHTML = '<div class="empty-state">No matching courses found.</div>';
           return;
         }
 
-        rows.forEach((course) => {
-          const item = document.createElement("div");
-          item.className = "mini-item";
-          item.innerHTML = `
-            <strong>${escapeHtml(course.title)}</strong>
-            <p>${escapeHtml(course.description || "No description yet.")}</p>
-            <div class="action-row">
-              <span class="chip mono">#${escapeHtml(course.id)}</span>
-              <span class="chip">${escapeHtml(course.instructorName || "Instructor")}</span>
-              <button class="inline-button" type="button">Enroll</button>
+        rows.slice(0, 4).forEach((course) => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "student-row";
+          wrapper.innerHTML = `
+            <div class="s-avatar">${["📘", "🧩", "🛰", "💡"][Number(course.id) % 4]}</div>
+            <div class="s-name">
+              <div style="font-size:13px;font-weight:500">${escapeHtml(course.title)}</div>
+              <div style="font-size:11px;color:var(--muted)">${escapeHtml(course.instructorName || "Instructor")}</div>
             </div>
+            <button class="enroll-btn" type="button">Enroll</button>
           `;
-          item.querySelector("button").addEventListener("click", async () => {
+          wrapper.querySelector("button").addEventListener("click", async () => {
             try {
               await Learnly.api(`/api/courses/${encodeURIComponent(course.id)}/enroll`, { method: "POST" });
               setStatus($("#search-status"), `Enrolled in "${course.title}".`, "ok");
-              await refreshMyCourses();
-            } catch (e) {
-              setStatus($("#search-status"), e.message, "error");
+              await refreshCourses();
+            } catch (error) {
+              setStatus($("#search-status"), error.message, "error");
             }
           });
-          out.appendChild(item);
+          root.appendChild(wrapper);
         });
       }
 
-      async function loadMe() {
-        const pill = $("#me-pill");
+      async function loadProfile() {
         try {
           const data = await Learnly.api("/api/auth/me");
-          studentState.me = data.user;
-          $("#profile-name").textContent = data.user.name;
-          $("#profile-role").textContent = "Student · Learnly";
-          $("#avatar-initials").textContent = initials(data.user.name);
-          $("#greeting-title").textContent = `${greetingForTime()}, ${data.user.name.split(" ")[0]}`;
-          pill.textContent = `Session: ${data.user.email}`;
-        } catch (e) {
-          pill.textContent = "Session: missing or invalid token";
+          state.me = data.user;
+          $("#user-name").textContent = data.user.name;
+          $("#avatar-text").textContent = initials(data.user.name);
+          $("#hero-title").textContent = `${getGreeting()}, ${data.user.name.split(" ")[0]} ☀️`;
+          $("#hero-sub").textContent = "You can continue courses, check scores, and manage assignments from this workspace.";
+          $("#session-label").textContent = `Signed in as ${data.user.email}`;
+        } catch (error) {
+          $("#session-label").textContent = "Session missing or invalid";
         }
       }
 
-      async function refreshMyCourses() {
-        const status = $("#my-status");
-        setStatus(status, "Loading courses...", "");
+      async function refreshCourses() {
+        setStatus($("#courses-status"), "Loading courses...", "");
         try {
-          const rows = await Learnly.api("/api/courses/my");
-          studentState.myCourses = Array.isArray(rows) ? rows : [];
-          renderCourses();
-          await refreshPendingAssignments();
-          updateStats();
-          setStatus(status, studentState.myCourses.length ? "Courses synced." : "", studentState.myCourses.length ? "ok" : "");
-        } catch (e) {
-          studentState.myCourses = [];
-          renderCourses();
-          updateStats();
-          setStatus(status, e.message, "error");
+          const courses = await Learnly.api("/api/courses/my");
+          state.courses = Array.isArray(courses) ? courses : [];
+          $("#stat-courses").textContent = String(state.courses.length);
+          $("#delta-courses").textContent = state.courses.length ? `${state.courses.length} active` : "No courses";
+          $("#badge-courses").textContent = String(state.courses.length);
+          $("#stat-completed").textContent = String(state.courses.length * 2);
+          $("#delta-completed").textContent = state.courses.length ? "Learning live" : "Start learning";
+          renderCourseList();
+          setStatus($("#courses-status"), "", "");
+          await refreshAssignments();
+        } catch (error) {
+          renderCourseList();
+          setStatus($("#courses-status"), error.message, "error");
         }
       }
 
-      async function refreshPendingAssignments() {
-        let pending = 0;
-        const gradeRows = [];
-        for (const course of studentState.myCourses) {
+      async function refreshAssignments() {
+        const assignmentSets = [];
+        const grades = [];
+        for (const course of state.courses) {
           try {
             const assignments = await Learnly.api(`/api/assignments/course/${encodeURIComponent(course.id)}`);
-            pending += assignments.length;
+            assignmentSets.push(...assignments);
             for (const assignment of assignments) {
               try {
                 const submission = await Learnly.api(`/api/submissions/my?assignmentId=${encodeURIComponent(assignment.id)}`);
                 if (submission.grade && submission.grade.score !== undefined) {
-                  gradeRows.push(Number(submission.grade.score));
+                  grades.push(Number(submission.grade.score));
                 }
-              } catch (e) {
+              } catch (error) {
               }
             }
-          } catch (e) {
+          } catch (error) {
           }
         }
-        studentState.pendingAssignments = pending;
-        studentState.averageGrade = gradeRows.length ? gradeRows.reduce((sum, row) => sum + row, 0) / gradeRows.length : null;
+        state.assignments = assignmentSets.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+        state.grades = grades;
+        $("#stat-pending").textContent = String(state.assignments.length);
+        $("#delta-pending").textContent = state.assignments.length ? "Due soon" : "Clear";
+        $("#badge-pending").textContent = String(state.assignments.length);
+        renderUpcoming();
+        renderScore();
+      }
+
+      async function refreshNotifications() {
+        setStatus($("#notifications-status"), "Loading announcements...", "");
+        try {
+          const notifications = await Learnly.api("/api/notifications?limit=30");
+          state.notifications = Array.isArray(notifications) ? notifications : [];
+          renderNotifications();
+          setStatus($("#notifications-status"), "", "");
+        } catch (error) {
+          renderNotifications();
+          setStatus($("#notifications-status"), error.message, "error");
+        }
       }
 
       async function searchCourses() {
-        const status = $("#search-status");
-        setStatus(status, "Searching...", "");
+        setStatus($("#search-status"), "Searching...", "");
         try {
-          const q = encodeURIComponent($("#q").value.trim());
+          const q = encodeURIComponent($("#course-search").value.trim());
           const rows = await Learnly.api(`/api/courses${q ? `?q=${q}` : ""}`, { auth: false });
-          renderSearchResults(rows);
-          setStatus(status, rows.length ? `Found ${rows.length} course(s).` : "", rows.length ? "ok" : "");
-        } catch (e) {
+          renderSearchResults(Array.isArray(rows) ? rows : []);
+          setStatus($("#search-status"), rows.length ? `Found ${rows.length} course(s).` : "", rows.length ? "ok" : "");
+        } catch (error) {
           renderSearchResults([]);
-          setStatus(status, e.message, "error");
+          setStatus($("#search-status"), error.message, "error");
         }
       }
 
-      async function loadCourse() {
-        const status = $("#course-status");
-        const out = $("#course-out");
-        out.innerHTML = "";
-        setStatus(status, "Loading course...", "");
-        try {
-          const id = $("#course-id").value.trim();
-          const course = await Learnly.api(`/api/courses/${encodeURIComponent(id)}`);
-          const assignments = await Learnly.api(`/api/assignments/course/${encodeURIComponent(id)}`);
-
-          const mats = Array.isArray(course.materials) ? course.materials : [];
-          const blocks = [];
-          blocks.push(`
-            <div class="mini-item">
-              <strong>${escapeHtml(course.title)}</strong>
-              <p>${escapeHtml(course.description || "No description available.")}</p>
-            </div>
-          `);
-          blocks.push(
-            mats.length
-              ? mats
-                  .map(
-                    (m) => `
-                <div class="mini-item">
-                  <strong>${escapeHtml(m.title)}</strong>
-                  <p>${escapeHtml(String(m.type).toUpperCase())} · <a href="${m.url}" target="_blank" rel="noreferrer">Open material</a></p>
-                </div>
-              `
-                  )
-                  .join("")
-              : '<div class="empty-state">No materials available yet for this course.</div>'
-          );
-          blocks.push(
-            assignments.length
-              ? assignments
-                  .map(
-                    (a) => `
-                <div class="mini-item">
-                  <strong>${escapeHtml(a.title)}</strong>
-                  <p class="mono">Assignment #${escapeHtml(a.id)} · due ${new Date(a.dueDate).toLocaleString()}</p>
-                </div>
-              `
-                  )
-                  .join("")
-              : '<div class="empty-state">No assignments published yet.</div>'
-          );
-          out.innerHTML = blocks.join("");
-          setStatus(status, "Course loaded.", "ok");
-        } catch (e) {
-          setStatus(status, e.message, "error");
-        }
-      }
-
-      async function submitAssignment(e) {
-        e.preventDefault();
-        const status = $("#submit-status");
-        setStatus(status, "Submitting work...", "");
+      async function submitAssignment(event) {
+        event.preventDefault();
+        setStatus($("#submit-status"), "Submitting...", "");
         try {
           const form = new FormData();
-          form.set("assignmentId", $("#assignmentId").value.trim());
-          if ($("#text").value.trim()) form.set("text", $("#text").value.trim());
-          const file = $("#file").files && $("#file").files[0];
+          form.set("assignmentId", $("#assignment-id").value.trim());
+          if ($("#submission-text").value.trim()) form.set("text", $("#submission-text").value.trim());
+          const file = $("#submission-file").files && $("#submission-file").files[0];
           if (file) form.set("file", file);
           await Learnly.api("/api/submissions", { method: "POST", form });
-          setStatus(status, "Assignment submitted.", "ok");
-          $("#text").value = "";
-          $("#file").value = "";
-          await refreshMyCourses();
-        } catch (e2) {
-          setStatus(status, e2.message, "error");
+          setStatus($("#submit-status"), "Assignment submitted.", "ok");
+          $("#submission-text").value = "";
+          $("#submission-file").value = "";
+        } catch (error) {
+          setStatus($("#submit-status"), error.message, "error");
         }
       }
 
       async function checkGrade() {
-        const status = $("#grade-status");
-        const out = $("#grade-out");
-        out.innerHTML = "";
-        setStatus(status, "Loading result...", "");
+        const output = $("#grade-output");
+        output.innerHTML = "";
+        setStatus($("#grade-status"), "Loading feedback...", "");
         try {
-          const assignmentId = $("#grade-assignmentId").value.trim();
+          const assignmentId = $("#grade-assignment").value.trim();
           const row = await Learnly.api(`/api/submissions/my?assignmentId=${encodeURIComponent(assignmentId)}`);
           if (!row.grade) {
-            out.innerHTML = '<div class="empty-state">Submitted successfully. This assignment has not been graded yet.</div>';
-            setStatus(status, "Waiting for feedback.", "ok");
+            output.innerHTML = '<div class="empty-state">This assignment has been submitted, but no grade is posted yet.</div>';
+            setStatus($("#grade-status"), "Waiting for feedback.", "ok");
             return;
           }
-          out.innerHTML = `
-            <div class="mini-item">
-              <strong>${row.grade.score}/100</strong>
-              <p>${escapeHtml(row.grade.feedback || "No feedback provided yet.")}</p>
+          output.innerHTML = `
+            <div class="ann-item">
+              <div class="ann-head">
+                <div class="ann-title">Score: ${row.grade.score}/100</div>
+                <div class="ann-time">${row.grade.gradedAt ? new Date(row.grade.gradedAt).toLocaleDateString() : ""}</div>
+              </div>
+              <div class="ann-body">${escapeHtml(row.grade.feedback || "No feedback provided.")}</div>
             </div>
           `;
-          setStatus(status, "Grade loaded.", "ok");
-        } catch (e) {
-          setStatus(status, e.message, "error");
+          setStatus($("#grade-status"), "Feedback loaded.", "ok");
+        } catch (error) {
+          setStatus($("#grade-status"), error.message, "error");
         }
       }
 
-      async function refreshNotifications() {
-        const status = $("#n-status");
-        const out = $("#n-list");
-        out.innerHTML = "";
-        setStatus(status, "Refreshing announcements...", "");
-        try {
-          const rows = await Learnly.api("/api/notifications?limit=30");
-          if (!rows || !rows.length) {
-            out.innerHTML = '<div class="empty-state">No announcements yet.</div>';
-            setStatus(status, "", "");
-            return;
-          }
-          rows.forEach((n) => {
-            const item = document.createElement("div");
-            item.className = "mini-item";
-            item.innerHTML = `
-              <strong>${n.readAt ? "Read update" : "New update"}</strong>
-              <p>${escapeHtml(n.message)}</p>
-            `;
-            out.appendChild(item);
-          });
-          setStatus(status, `Loaded ${rows.length} announcement(s).`, "ok");
-        } catch (e) {
-          setStatus(status, e.message, "error");
-        }
-      }
-
-      function bindSidebar() {
-        document.querySelectorAll(".nav-button").forEach((button) => {
-          button.addEventListener("click", () => {
-            document.querySelectorAll(".nav-button").forEach((item) => item.classList.remove("is-active"));
-            button.classList.add("is-active");
-            const target = document.getElementById(button.dataset.target);
+      function bindNav() {
+        document.querySelectorAll(".nav-item").forEach((item) => {
+          item.addEventListener("click", () => {
+            document.querySelectorAll(".nav-item").forEach((nav) => nav.classList.remove("active"));
+            item.classList.add("active");
+            const target = document.getElementById(item.dataset.target);
             if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
           });
         });
@@ -535,18 +576,18 @@
 
       function init() {
         if (!requireRole("student")) window.location.replace("/dashboard.html");
+        bindNav();
+        $("#btn-search").addEventListener("click", searchCourses);
+        $("#btn-refresh-courses").addEventListener("click", refreshCourses);
+        $("#btn-refresh-notifs").addEventListener("click", refreshNotifications);
         $("#btn-logout").addEventListener("click", () => {
           Learnly.clearToken();
           window.location.href = "/signin.html";
         });
-        $("#btn-search").addEventListener("click", searchCourses);
-        $("#btn-load-course").addEventListener("click", loadCourse);
         $("#submit-form").addEventListener("submit", submitAssignment);
-        $("#btn-grade").addEventListener("click", checkGrade);
-        $("#btn-refresh-n").addEventListener("click", refreshNotifications);
-        bindSidebar();
-        loadMe();
-        refreshMyCourses();
+        $("#btn-check-grade").addEventListener("click", checkGrade);
+        loadProfile();
+        refreshCourses();
         refreshNotifications();
       }
 
