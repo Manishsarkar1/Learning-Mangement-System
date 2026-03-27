@@ -10,11 +10,18 @@ function setStatus(message, type) {
 }
 
 async function apiPostJson(path, body) {
-  const res = await fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body || {}),
-  });
+  let res;
+  try {
+    res = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body || {}),
+    });
+  } catch (error) {
+    const err = new Error("Unable to reach the server. Make sure the app is running on http://localhost:5000.");
+    err.cause = error;
+    throw err;
+  }
 
   let data = null;
   try {
@@ -38,6 +45,12 @@ async function apiPostJson(path, body) {
 
 function saveToken(token) {
   localStorage.setItem("learnly_token", token);
+
+  if (window.location.pathname === "/signin.html") {
+    window.setTimeout(() => {
+      window.location.href = "/dashboard.html";
+    }, 300);
+  }
 }
 
 function loadToken() {
@@ -56,4 +69,3 @@ window.LearnlyAuth = {
   loadToken,
   clearToken,
 };
-
