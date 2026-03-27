@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Learnly — App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --bg2: #111114;
+        --bg3: #18181c;
+        --border: rgba(255, 255, 255, 0.08);
+        --text: #f0efe8;
+        --muted: rgba(240, 239, 232, 0.7);
+        --accent: #c8f135;
+        --gold: #e8c87a;
+        --radius: 14px;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "DM Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      a { color: var(--accent); text-decoration: none; }
+
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(10, 10, 11, 0.8);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .topbar {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .brand {
+        font-family: "Instrument Serif", serif;
+        font-size: 22px;
+        letter-spacing: -0.5px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text);
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+
+      .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+      button {
+        border: none;
+        background: var(--accent);
+        color: #0a0a0b;
+        font-weight: 700;
+        padding: 9px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+
+      .btn-ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: rgba(240, 239, 232, 0.85);
+        font-weight: 600;
+      }
+
+      .wrap { max-width: 1100px; margin: 0 auto; padding: 22px 18px 60px; }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 12px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: var(--radius);
+        padding: 16px;
+      }
+
+      .card h2 { margin: 0 0 10px; font-size: 16px; font-weight: 600; }
+      .muted { color: var(--muted); line-height: 1.6; font-size: 13px; }
+      code { color: var(--gold); }
+
+      label { display: block; margin: 12px 0 6px; font-size: 12px; color: rgba(240, 239, 232, 0.85); }
+      input, textarea, select {
+        width: 100%;
+        padding: 9px 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        outline: none;
+      }
+      textarea { min-height: 80px; resize: vertical; }
+
+      .row { display: flex; gap: 10px; }
+      .row > * { flex: 1; }
+
+      .status {
+        margin-top: 10px;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .status[data-type="error"] { color: #ff8b8b; }
+      .status[data-type="ok"] { color: var(--accent); }
+
+      .pill {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.02);
+        font-size: 12px;
+        color: rgba(240, 239, 232, 0.85);
+      }
+
+      ul { margin: 10px 0 0; padding-left: 18px; }
+      li { color: rgba(240, 239, 232, 0.85); margin: 6px 0; font-size: 13px; line-height: 1.5; }
+
+      .col-12 { grid-column: span 12; }
+      .col-6 { grid-column: span 6; }
+      .col-4 { grid-column: span 4; }
+
+      @media (max-width: 900px) {
+        .col-6, .col-4 { grid-column: span 12; }
+        .row { flex-direction: column; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="topbar">
+        <a href="/" class="brand" aria-label="Back to landing">
+          <span class="dot"></span>
+          Learnly
+        </a>
+        <div class="actions">
+          <span class="pill" id="db-pill">DB: …</span>
+          <a class="pill" href="/signin.html">Sign in</a>
+          <a class="pill" href="/signup.html">Sign up</a>
+          <button class="btn-ghost" id="btn-clear-token" type="button">Clear token</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div class="grid">
+        <section class="card col-12">
+          <h2>Session</h2>
+          <div class="muted" id="session-info">Loading…</div>
+          <div class="status" id="session-status" aria-live="polite"></div>
+        </section>
+
+        <section class="card col-6">
+          <h2>Courses</h2>
+          <div class="muted">Public list: <code>GET /api/courses</code></div>
+          <button id="btn-refresh-courses" type="button" style="margin-top: 12px">Refresh courses</button>
+          <div class="status" id="courses-status" aria-live="polite"></div>
+          <div id="courses-list"></div>
+        </section>
+
+        <section class="card col-6">
+          <h2>Create course (auth)</h2>
+          <div class="muted">Requires token header <code>authorization: &lt;jwt&gt;</code></div>
+          <form id="course-create-form">
+            <label for="course-title">Title</label>
+            <input id="course-title" required />
+
+            <label for="course-desc">Description</label>
+            <textarea id="course-desc" required></textarea>
+
+            <button id="btn-create-course" type="submit">Create course</button>
+            <div class="status" id="course-create-status" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="card col-6">
+          <h2>Enroll (auth)</h2>
+          <form id="enroll-form">
+            <label for="enroll-course-id">Course ID</label>
+            <input id="enroll-course-id" inputmode="numeric" required />
+            <button id="btn-enroll" type="submit">Enroll</button>
+            <div class="status" id="enroll-status" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="card col-6">
+          <h2>Quizzes</h2>
+          <div class="muted">These endpoints are currently public in the backend.</div>
+
+          <form id="quiz-create-form" style="margin-top: 12px">
+            <div class="row">
+              <div>
+                <label for="quiz-course-id">Course ID</label>
+                <input id="quiz-course-id" inputmode="numeric" required />
+              </div>
+              <div>
+                <label for="quiz-title">Quiz title</label>
+                <input id="quiz-title" required />
+              </div>
+            </div>
+            <button type="submit">Create quiz</button>
+            <div class="status" id="quiz-create-status" aria-live="polite"></div>
+          </form>
+
+          <form id="question-form" style="margin-top: 16px">
+            <label for="q-quiz-id">Quiz ID</label>
+            <input id="q-quiz-id" inputmode="numeric" required />
+
+            <label for="q-text">Question</label>
+            <input id="q-text" required />
+
+            <div class="row">
+              <div>
+                <label for="q-a">Option A</label>
+                <input id="q-a" required />
+              </div>
+              <div>
+                <label for="q-b">Option B</label>
+                <input id="q-b" required />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="q-c">Option C</label>
+                <input id="q-c" required />
+              </div>
+              <div>
+                <label for="q-d">Option D</label>
+                <input id="q-d" required />
+              </div>
+            </div>
+
+            <label for="q-correct">Correct option</label>
+            <select id="q-correct" required>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+              <option value="D">D</option>
+            </select>
+
+            <button type="submit">Add question</button>
+            <div class="status" id="question-status" aria-live="polite"></div>
+          </form>
+
+          <form id="quiz-get-form" style="margin-top: 16px">
+            <label for="quiz-get-id">Get quiz questions by Quiz ID</label>
+            <input id="quiz-get-id" inputmode="numeric" required />
+            <button type="submit">Fetch questions</button>
+            <div class="status" id="quiz-get-status" aria-live="polite"></div>
+            <div id="quiz-questions"></div>
+          </form>
+        </section>
+      </div>
+    </main>
+
+    <script src="/auth.js"></script>
+    <script src="/app.js" defer></script>
+  </body>
+</html>
+

@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Learnly — Admin</title>
+    <style>
+      :root { --bg:#0a0a0b; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08); --text:#f0efe8; --muted: rgba(240,239,232,0.7); --accent:#c8f135; --gold:#e8c87a; }
+      * { box-sizing: border-box; }
+      body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+      a { color: var(--accent); text-decoration: none; }
+      header { border-bottom:1px solid var(--border); background: rgba(10,10,11,0.7); backdrop-filter: blur(14px); position: sticky; top:0; z-index:10; }
+      .top { max-width: 1100px; margin: 0 auto; padding: 14px 18px; display:flex; gap:10px; align-items:center; justify-content: space-between; flex-wrap: wrap; }
+      .brand { font-weight: 900; letter-spacing: -0.2px; }
+      .pill { border:1px solid rgba(255,255,255,0.12); border-radius:999px; padding:6px 10px; color: rgba(240,239,232,0.85); font-size: 12px; }
+      button { border: none; background: var(--accent); color:#0a0a0b; font-weight:800; padding:9px 12px; border-radius: 10px; cursor:pointer; }
+      .ghost { background: transparent; color: rgba(240,239,232,0.9); border:1px solid rgba(255,255,255,0.12); }
+      main { max-width: 1100px; margin: 0 auto; padding: 18px; }
+      .grid { display:grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }
+      .card { grid-column: span 12; border:1px solid var(--border); background: var(--card); border-radius: 14px; padding: 14px; }
+      .col6 { grid-column: span 6; }
+      @media (max-width: 900px){ .col6 { grid-column: span 12; } }
+      h2 { margin:0 0 10px; font-size: 16px; }
+      .muted { color: var(--muted); font-size: 13px; line-height: 1.6; }
+      label { display:block; margin: 10px 0 6px; font-size: 12px; color: rgba(240,239,232,0.85); }
+      input, select { width: 100%; padding: 9px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: var(--text); outline: none; }
+      .status { margin-top: 8px; font-size: 13px; line-height: 1.5; }
+      .status[data-type="error"] { color: #ff8b8b; }
+      .status[data-type="ok"] { color: var(--accent); }
+      code { color: var(--gold); }
+      table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+      th, td { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 8px 6px; text-align: left; font-size: 13px; vertical-align: top; }
+      th { color: rgba(240,239,232,0.85); font-weight: 700; }
+      .row { display:flex; gap:10px; flex-wrap:wrap; }
+      .row > * { flex:1; min-width: 180px; }
+      .small { font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="top">
+        <div class="brand">Learnly · Admin</div>
+        <div class="row" style="flex:0 0 auto; align-items:center;">
+          <span class="pill" id="me-pill">Session: …</span>
+          <a class="pill" href="/dashboard.html">Role switch</a>
+          <button class="ghost" id="btn-logout" type="button">Clear token</button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="grid">
+        <section class="card col6">
+          <h2>Analytics</h2>
+          <div class="muted">Uses <code>GET /api/admin/analytics</code></div>
+          <button id="btn-refresh-a" type="button" style="margin-top:10px;">Refresh</button>
+          <div id="a-status" class="status" aria-live="polite"></div>
+          <pre id="a-out" class="small muted" style="white-space:pre-wrap; margin:10px 0 0;"></pre>
+        </section>
+
+        <section class="card col6">
+          <h2>Create user</h2>
+          <div class="muted">Uses <code>POST /api/admin/users</code></div>
+          <form id="u-form">
+            <label for="u-name">Name</label>
+            <input id="u-name" required />
+            <label for="u-email">Email</label>
+            <input id="u-email" type="email" required />
+            <div class="row">
+              <div>
+                <label for="u-pass">Password</label>
+                <input id="u-pass" type="password" required />
+              </div>
+              <div>
+                <label for="u-role">Role</label>
+                <select id="u-role">
+                  <option value="student">student</option>
+                  <option value="instructor">instructor</option>
+                  <option value="admin">admin</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" style="margin-top:10px;">Create</button>
+            <div id="u-status" class="status" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="card col-12">
+          <h2>Users</h2>
+          <div class="muted">Uses <code>GET /api/admin/users</code>, delete uses <code>DELETE /api/admin/users/:id</code></div>
+          <button id="btn-refresh-users" type="button" style="margin-top:10px;">Refresh</button>
+          <div id="users-status" class="status" aria-live="polite"></div>
+          <div id="users-out"></div>
+        </section>
+
+        <section class="card col-12">
+          <h2>Courses</h2>
+          <div class="muted">Uses <code>GET /api/admin/courses</code>, delete uses <code>DELETE /api/admin/courses/:id</code></div>
+          <button id="btn-refresh-courses" type="button" style="margin-top:10px;">Refresh</button>
+          <div id="courses-status" class="status" aria-live="polite"></div>
+          <div id="courses-out"></div>
+        </section>
+      </div>
+    </main>
+
+    <script src="/lms.js"></script>
+    <script>
+      const $ = (s) => document.querySelector(s);
+      const setStatus = (el, msg, type) => { el.textContent = msg || ""; el.dataset.type = type || ""; };
+
+      function requireRole(role) {
+        const token = Learnly.loadToken();
+        if (!token) return false;
+        const payload = Learnly.decodeJwt(token);
+        return payload && payload.role === role;
+      }
+
+      async function loadMe() {
+        const pill = $("#me-pill");
+        try {
+          const data = await Learnly.api("/api/auth/me");
+          pill.textContent = `Session: ${data.user.email} (${data.user.role})`;
+        } catch {
+          pill.textContent = "Session: missing/invalid token";
+        }
+      }
+
+      async function refreshAnalytics() {
+        const status = $("#a-status");
+        const out = $("#a-out");
+        out.textContent = "";
+        setStatus(status, "Loading…", "");
+        try {
+          const data = await Learnly.api("/api/admin/analytics");
+          out.textContent = JSON.stringify(data, null, 2);
+          setStatus(status, "Loaded.", "ok");
+        } catch (e) {
+          setStatus(status, e.message, "error");
+        }
+      }
+
+      async function createUser(e) {
+        e.preventDefault();
+        const status = $("#u-status");
+        setStatus(status, "Creating…", "");
+        try {
+          await Learnly.api("/api/admin/users", {
+            method: "POST",
+            json: {
+              name: $("#u-name").value.trim(),
+              email: $("#u-email").value.trim().toLowerCase(),
+              password: $("#u-pass").value,
+              role: $("#u-role").value,
+            },
+          });
+          setStatus(status, "User created.", "ok");
+          $("#u-name").value = ""; $("#u-email").value = ""; $("#u-pass").value = "";
+          refreshUsers();
+        } catch (e) {
+          setStatus(status, e.message, "error");
+        }
+      }
+
+      async function refreshUsers() {
+        const status = $("#users-status");
+        const out = $("#users-out");
+        out.innerHTML = "";
+        setStatus(status, "Loading…", "");
+        try {
+          const rows = await Learnly.api("/api/admin/users?limit=200");
+          if (!rows || rows.length === 0) {
+            out.innerHTML = '<div class="muted" style="margin-top:10px;">No users.</div>';
+            setStatus(status, "", "");
+            return;
+          }
+          const table = document.createElement("table");
+          table.innerHTML = "<thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr></thead>";
+          const tb = document.createElement("tbody");
+          rows.forEach((u) => {
+            const tr = document.createElement("tr");
+            const btn = document.createElement("button");
+            btn.textContent = "Delete";
+            btn.className = "ghost";
+            btn.addEventListener("click", async () => {
+              if (!confirm(`Delete user ${u.email}?`)) return;
+              try {
+                await Learnly.api(`/api/admin/users/${encodeURIComponent(u.id)}`, { method: "DELETE" });
+                setStatus(status, "User deleted.", "ok");
+                refreshUsers();
+              } catch (e) {
+                setStatus(status, e.message, "error");
+              }
+            });
+            tr.innerHTML = `<td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.email)}</td><td>${escapeHtml(u.role)}</td><td></td>`;
+            tr.children[3].appendChild(btn);
+            tb.appendChild(tr);
+          });
+          table.appendChild(tb);
+          out.appendChild(table);
+          setStatus(status, `Loaded ${rows.length}.`, "ok");
+        } catch (e) {
+          setStatus(status, e.message, "error");
+        }
+      }
+
+      async function refreshCourses() {
+        const status = $("#courses-status");
+        const out = $("#courses-out");
+        out.innerHTML = "";
+        setStatus(status, "Loading…", "");
+        try {
+          const rows = await Learnly.api("/api/admin/courses?limit=200");
+          if (!rows || rows.length === 0) {
+            out.innerHTML = '<div class="muted" style="margin-top:10px;">No courses.</div>';
+            setStatus(status, "", "");
+            return;
+          }
+          const table = document.createElement("table");
+          table.innerHTML = "<thead><tr><th>Title</th><th>Instructor</th><th>Students</th><th>Action</th></tr></thead>";
+          const tb = document.createElement("tbody");
+          rows.forEach((c) => {
+            const tr = document.createElement("tr");
+            const btn = document.createElement("button");
+            btn.textContent = "Delete";
+            btn.className = "ghost";
+            btn.addEventListener("click", async () => {
+              if (!confirm(`Delete course ${c.title}?`)) return;
+              try {
+                await Learnly.api(`/api/admin/courses/${encodeURIComponent(c.id)}`, { method: "DELETE" });
+                setStatus(status, "Course deleted.", "ok");
+                refreshCourses();
+              } catch (e) {
+                setStatus(status, e.message, "error");
+              }
+            });
+            const inst = c.instructor ? `${c.instructor.name} (${c.instructor.email})` : "—";
+            tr.innerHTML = `<td>${escapeHtml(c.title)}<div class="small muted">#${c.id}</div></td><td>${escapeHtml(inst)}</td><td>${c.studentCount}</td><td></td>`;
+            tr.children[3].appendChild(btn);
+            tb.appendChild(tr);
+          });
+          table.appendChild(tb);
+          out.appendChild(table);
+          setStatus(status, `Loaded ${rows.length}.`, "ok");
+        } catch (e) {
+          setStatus(status, e.message, "error");
+        }
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[c]));
+      }
+
+      function init() {
+        if (!requireRole("admin")) window.location.replace("/dashboard.html");
+        $("#btn-logout").addEventListener("click", () => { Learnly.clearToken(); window.location.href = "/signin.html"; });
+        $("#btn-refresh-a").addEventListener("click", refreshAnalytics);
+        $("#u-form").addEventListener("submit", createUser);
+        $("#btn-refresh-users").addEventListener("click", refreshUsers);
+        $("#btn-refresh-courses").addEventListener("click", refreshCourses);
+        loadMe();
+        refreshAnalytics();
+        refreshUsers();
+        refreshCourses();
+      }
+      init();
+    </script>
+  </body>
+</html>
+

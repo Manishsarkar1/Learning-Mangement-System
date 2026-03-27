@@ -1,168 +1,170 @@
-# LMS Backend (Express + MySQL)
+# Learnly LMS (Node.js + Express + MongoDB + JWT)
 
-This repository is a minimal Learning Management System (LMS) backend API built with **Node.js + Express** and a **MySQL** database. It provides basic authentication, course creation/listing, enrollments, and quiz/question management.
+Full-fledged LMS web app with role-based dashboards for **Student**, **Instructor**, and **Admin**.
 
-It also serves a static **Learnly** landing page from `public/` at `GET /`.
+## Important UI constraint (respected)
 
-## What it does
+The existing **Landing page** and **Login page** UI are treated as **read-only** (no HTML/CSS/JS changes). They are only wired to backend auth endpoints:
 
-- **Auth**
-  - Register users with a role (e.g., `student`, `instructor`)
-  - Login and receive a **JWT** token
-- **Courses**
-  - Instructors can create courses (requires auth)
-  - Anyone can list courses
-  - Students can enroll in a course (requires auth)
-- **Quizzes**
-  - Create a quiz for a course
-  - Add multiple-choice questions to a quiz
-  - Fetch quiz questions for a given quiz
+- Landing: `GET /` (static)
+- Login: `GET /signin.html` → calls `POST /api/auth/login`
 
-## How it works (high level)
+## Tech stack
 
-- `server.js` starts an Express server on **port 5000**, enables JSON parsing, serves `public/`, and wires the route modules under `/api/*`.
-- `config/db.js` creates a MySQL connection via `mysql2` and exports it.
-- Controllers run SQL queries using that shared connection.
-- `middleware/authMiddleware.js` verifies JWTs and populates `req.user` with the decoded payload:
-  - payload fields: `{ id, role }`
-- Some routes require authentication (see below). Those routes use `req.user.id` as the current user id.
+- Frontend: HTML/CSS/JS (static pages under `frontend/public/`)
+- Backend: Node.js + Express (`backend/`)
+- Database: MongoDB (Mongoose)
+- Auth: JWT + bcrypt
 
 ## Project structure
 
 ```
-config/
-  db.js                   # MySQL connection
-controllers/
-  authController.js       # register/login
-  courseController.js     # create/list/enroll
-  quizController.js       # create quiz / add question / fetch quiz
-middleware/
-  authMiddleware.js       # JWT verification
-routes/
-  authRoutes.js
-  courseRoutes.js
-  quizRoutes.js
-public/                   # static landing pages (served at /)
-server.js                 # app entrypoint
-uploads/                  # (currently empty)
+frontend/
+  public/                 # all static pages (landing/login + dashboards)
+backend/
+  app.js                  # express app
+  server.js               # boot + Mongo connection
+  config/
+    db.js                 # Mongo connect
+  controllers/
+  middleware/
+  models/
+  routes/
+  scripts/
+    seed.js               # sample data
+uploads/
+  submissions/            # assignment uploads (served at /uploads/*)
 ```
 
 ## Setup
 
-### Prerequisites
-
-- Node.js (LTS recommended)
-
-Database options:
-
-- MySQL server running locally (optional)
-- No DB install: use the built-in file database (recommended for quick start)
-
-### Install dependencies
-
-This repo currently does not include a `package.json`. If you don’t already have one, create it and install the dependencies used in the code:
+### 1) Install
 
 ```bash
-npm init -y
-npm i express cors mysql2 bcrypt jsonwebtoken
+npm install
 ```
 
-### Configure the database connection
+### 2) Configure env
 
-By default, the server uses a local JSON file database at `data/data.json` (so you can run it without installing MySQL).
+Create `.env` (or copy `.env.example`) and set:
 
-To use MySQL instead:
+- `MONGO_URI`
+- `JWT_SECRET`
+
+Example:
 
 ```bash
-set DB_DRIVER=mysql
+cp .env.example .env
 ```
 
-To force the file database:
+### 3) Start MongoDB
+
+Ensure MongoDB is running and reachable via `MONGO_URI`.
+
+### 4) Seed sample data (recommended)
 
 ```bash
-set DB_DRIVER=file
+npm run seed
 ```
 
-To configure MySQL, set env vars (or edit `config/db.js`) for:
-
-- `host` (default: `localhost`)
-- `user` (default: `root`)
-- `password`
-- `database`
-
-You can also set environment variables instead:
-
-- `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
-
-### Create required tables
-
-The code expects these tables/columns to exist (based on the SQL queries in controllers):
-
-- `users`: `id`, `name`, `email`, `password`, `role`
-- `courses`: `id`, `title`, `description`, `instructor_id`
-- `enrollments`: `id`, `student_id`, `course_id`
-- `quizzes`: `id`, `course_id`, `title`
-- `quiz_questions`: `id`, `quiz_id`, `question`, `option_a`, `option_b`, `option_c`, `option_d`, `correct_option`
-
-Add any indexes/constraints you need (for example: a unique index on `users.email`).
-
-### Run the server
+To wipe collections first:
 
 ```bash
-node server.js
+SEED_DROP=1 npm run seed
 ```
 
-Health check:
+Seed prints sample credentials:
 
-- `GET /health` → `OK`
-- `GET /health/db` → `{ "connected": true/false }`
+- `admin@learnly.local` / `Password123!`
+- `instructor@learnly.local` / `Password123!`
+- `student@learnly.local` / `Password123!`
 
-Landing page:
+### 5) Run the server
 
-- `GET /` → Learnly landing page
-- `GET /signin.html`, `GET /signup.html` → placeholder pages
-- `GET /app.html` → simple demo app UI (courses/quizzes)
+```bash
+npm start
+```
 
-## API
+Open:
 
-Base URL: `http://localhost:5000`
+- Landing: `http://localhost:5000/`
+- Sign in: `http://localhost:5000/signin.html`
+- Role dashboard redirect: `http://localhost:5000/dashboard.html`
+
+## Database schema (collections)
+
+- `users`
+  - `name`, `email (unique)`, `passwordHash`, `role: student|instructor|admin`
+- `courses`
+  - `title`, `description`, `instructor (User)`, `students (User[])`, `materials[] {type,title,url,uploadedBy}`
+- `assignments`
+  - `course (Course)`, `title`, `description`, `dueDate`, `createdBy (User)`
+- `submissions`
+  - `assignment (Assignment)`, `course (Course)`, `student (User)`, `text`, `file {originalName,mimeType,size,path}`, `grade {score,feedback,gradedBy,gradedAt}`
+- `notifications`
+  - `user (User)`, `type`, `message`, `meta`, `readAt`
+
+## API (REST)
 
 ### Auth
 
-- `POST /api/auth/register`
-  - body: `{ "name", "email", "password", "role" }`
+- `POST /api/auth/register` (student/instructor only)
+  - body: `{ name, email, password, role }`
 - `POST /api/auth/login`
-  - body: `{ "email", "password" }`
-  - response: `{ "token": "<jwt>" }`
+  - body: `{ email, password }`
+  - response: `{ token }`
+- `GET /api/auth/me` (auth)
 
-### Authentication header
+### Auth header
 
-For protected routes, the middleware reads the token from the `authorization` header **as the raw token value** (not `Bearer <token>`):
+The existing UI sends the raw token (not `Bearer`), but both formats are accepted:
 
 ```
 authorization: <jwt>
+authorization: Bearer <jwt>
 ```
 
 ### Courses
 
-- `POST /api/courses/create` (auth required)
-  - body: `{ "title", "description" }`
-- `GET /api/courses` (public)
-- `POST /api/courses/enroll` (auth required)
-  - body: `{ "course_id" }`
+- `GET /api/courses` (public, supports `?q=search`)
+- `POST /api/courses` (instructor/admin)
+- `GET /api/courses/my` (auth)
+- `POST /api/courses/:courseId/enroll` (student/admin)
+- `POST /api/courses/:courseId/materials` (instructor/admin)
 
-### Quizzes
+Back-compat for the existing demo UI:
 
-- `POST /api/quizzes/create`
-  - body: `{ "course_id", "title" }`
-- `POST /api/quizzes/question`
-  - body: `{ "quiz_id", "question", "a", "b", "c", "d", "correct" }`
-- `GET /api/quizzes/:id`
-  - returns the questions for quiz `:id`
+- `POST /api/courses/create`
+- `POST /api/courses/enroll` (body `{ course_id }`)
 
-## Notes / caveats
+### Assignments
 
-- JWT signing uses a hard-coded secret string (`"secret"`) in `controllers/authController.js` and `middleware/authMiddleware.js`. For real deployments, move this into an environment variable and rotate it.
-- CORS is currently restricted to `http://localhost:5173` (typical Vite dev server). Adjust `server.js` if your frontend runs elsewhere.
-- Error handling is minimal (some queries ignore `err`). If you want, you can harden responses and validations.
-- If MySQL is not running/configured, the server will automatically fall back to the file database (`data/data.json`) so the API still works without installing MySQL.
+- `POST /api/assignments` (instructor/admin)
+- `GET /api/assignments/course/:courseId` (auth, must be enrolled/owner/admin)
+- `GET /api/assignments/:id` (auth)
+
+### Submissions + grading (file upload supported)
+
+- `POST /api/submissions` (student/admin, multipart)
+  - fields: `assignmentId` (required), `text` (optional), `file` (optional)
+- `GET /api/submissions/my?assignmentId=...` (student/admin)
+- `GET /api/submissions/assignment/:assignmentId` (instructor/admin)
+- `PATCH /api/submissions/:id/grade` (instructor/admin)
+  - body: `{ score: 0-100, feedback }`
+
+### Notifications
+
+- `GET /api/notifications` (auth)
+- `POST /api/notifications/:id/read` (auth)
+
+### Admin (admin only)
+
+- `GET /api/admin/analytics`
+- `GET /api/admin/users` / `POST /api/admin/users` / `DELETE /api/admin/users/:id`
+- `GET /api/admin/courses` / `DELETE /api/admin/courses/:id`
+
+## Notes
+
+- For production, set strong `JWT_SECRET`, use HTTPS, and restrict CORS.
+- File uploads are stored in `uploads/submissions/` and served via `GET /uploads/...`.
+

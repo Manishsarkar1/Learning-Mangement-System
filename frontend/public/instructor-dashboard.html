@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Learnly — Instructor</title>
+    <style>
+      :root { --bg:#0a0a0b; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08); --text:#f0efe8; --muted: rgba(240,239,232,0.7); --accent:#c8f135; --gold:#e8c87a; }
+      * { box-sizing: border-box; }
+      body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+      a { color: var(--accent); text-decoration: none; }
+      header { border-bottom:1px solid var(--border); background: rgba(10,10,11,0.7); backdrop-filter: blur(14px); position: sticky; top:0; z-index:10; }
+      .top { max-width: 1100px; margin: 0 auto; padding: 14px 18px; display:flex; gap:10px; align-items:center; justify-content: space-between; flex-wrap: wrap; }
+      .brand { font-weight: 900; letter-spacing: -0.2px; }
+      .pill { border:1px solid rgba(255,255,255,0.12); border-radius:999px; padding:6px 10px; color: rgba(240,239,232,0.85); font-size: 12px; }
+      button { border: none; background: var(--accent); color:#0a0a0b; font-weight:800; padding:9px 12px; border-radius: 10px; cursor:pointer; }
+      .ghost { background: transparent; color: rgba(240,239,232,0.9); border:1px solid rgba(255,255,255,0.12); }
+      main { max-width: 1100px; margin: 0 auto; padding: 18px; }
+      .grid { display:grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }
+      .card { grid-column: span 12; border:1px solid var(--border); background: var(--card); border-radius: 14px; padding: 14px; }
+      .col6 { grid-column: span 6; }
+      @media (max-width: 900px){ .col6 { grid-column: span 12; } }
+      h2 { margin:0 0 10px; font-size: 16px; }
+      .muted { color: var(--muted); font-size: 13px; line-height: 1.6; }
+      label { display:block; margin: 10px 0 6px; font-size: 12px; color: rgba(240,239,232,0.85); }
+      input, textarea, select { width: 100%; padding: 9px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: var(--text); outline: none; }
+      textarea { min-height: 70px; resize: vertical; }
+      .status { margin-top: 8px; font-size: 13px; line-height: 1.5; }
+      .status[data-type="error"] { color: #ff8b8b; }
+      .status[data-type="ok"] { color: var(--accent); }
+      code { color: var(--gold); }
+      ul { margin: 10px 0 0; padding-left: 18px; }
+      li { margin: 6px 0; font-size: 13px; color: rgba(240,239,232,0.9); }
+      .row { display:flex; gap:10px; flex-wrap:wrap; }
+      .row > * { flex:1; min-width: 180px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+      th, td { border-bottom: 1px solid rgba(255,255,255,0.08); padding: 8px 6px; text-align: left; font-size: 13px; vertical-align: top; }
+      th { color: rgba(240,239,232,0.85); font-weight: 700; }
+      .small { font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="top">
+        <div class="brand">Learnly · Instructor</div>
+        <div class="row" style="flex:0 0 auto; align-items:center;">
+          <span class="pill" id="me-pill">Session: …</span>
+          <a class="pill" href="/dashboard.html">Role switch</a>
+          <button class="ghost" id="btn-logout" type="button">Clear token</button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="grid">
+        <section class="card col6">
+          <h2>My courses</h2>
+          <div class="muted">Uses <code>GET /api/courses/my</code></div>
+          <button id="btn-refresh-my" type="button" style="margin-top:10px;">Refresh</button>
+          <div id="my-status" class="status" aria-live="polite"></div>
+          <div id="my-courses"></div>
+        </section>
+
+        <section class="card col6">
+          <h2>Create course</h2>
+          <div class="muted">Uses <code>POST /api/courses</code></div>
+          <form id="course-form">
+            <label for="ctitle">Title</label>
+            <input id="ctitle" required />
+            <label for="cdesc">Description</label>
+            <textarea id="cdesc" required></textarea>
+            <button type="submit" style="margin-top:10px;">Create</button>
+            <div id="course-status" class="status" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="card col6">
+          <h2>Upload materials (links)</h2>
+          <div class="muted">Uses <code>POST /api/courses/:courseId/materials</code></div>
+          <form id="mat-form">
+            <label for="mat-course">Course ID</label>
+            <input id="mat-course" required />
+            <div class="row">
+              <div>
+                <label for="mat-type">Type</label>
+                <select id="mat-type">
+                  <option value="link">link</option>
+                  <option value="pdf">pdf</option>
+                  <option value="video">video</option>
+                </select>
+              </div>
+              <div>
+                <label for="mat-title">Title</label>
+                <input id="mat-title" required />
+              </div>
+            </div>
+            <label for="mat-url">URL</label>
+            <input id="mat-url" placeholder="https://…" required />
+            <button type="submit" style="margin-top:10px;">Add material</button>
+            <div id="mat-status" class="status" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="card col6">
+          <h2>Create assignment</h2>
+          <div class="muted">Uses <code>POST /api/assignments</code></div>
+          <form id="a-form">
+            <label for="a-course">Course ID</label>
+            <input id="a-course" required />
+            <label for="a-title">Title</label>
+            <input id="a-title" required />
+            <label for="a-desc">Description</label>
+            <textarea id="a-desc" required></textarea>
+            <label for="a-due">Due date (ISO or readable date)</label>
+            <input id="a-due" placeholder="2026-04-10T17:00:00" required />
+            <button type="submit" style="margin-top:10px;">Create assignment</button>
+            <div id="a-status" class="status" aria-live="polite"></div>
+          </form>
+        </section>
+
+        <section class="card col-12">
+          <h2>Grade submissions</h2>
+          <div class="muted">Load by assignment id using <code>GET /api/submissions/assignment/:assignmentId</code></div>
+          <div class="row" style="margin-top:10px;">
+            <div>
+              <label for="g-assignment">Assignment ID</label>
+              <input id="g-assignment" />
+            </div>
+            <div style="flex:0 0 140px;">
+              <label>&nbsp;</label>
+              <button id="btn-load-subs" type="button" style="width:100%;">Load</button>
+            </div>
+          </div>
+          <div id="g-status" class="status" aria-live="polite"></div>
+          <div id="subs-out"></div>
+          <div class="muted small" style="margin-top:8px;">Grading uses <code>PATCH /api/submissions/:id/grade</code> with JSON <code>{score, feedback}</code></div>
+        </section>
+
+        <section class="card col-12">
+          <h2>Notifications</h2>
+          <div class="muted">New items appear when students submit assignments.</div>
+          <button id="btn-refresh-n" type="button" style="margin-top:10px;">Refresh</button>
+          <div id="n-status" class="status" aria-live="polite"></div>
+          <div id="n-list"></div>
+        </section>
+      </div>
+    </main>
+
+    <script src="/lms.js"></script>
+    <script>
+      const $ = (s) => document.querySelector(s);
+      const setStatus = (el, msg, type) => { el.textContent = msg || ""; el.dataset.type = type || ""; };
+
+      function requireRole(role) {
+        const token = Learnly.loadToken();
+        if (!token) return false;
+        const payload = Learnly.decodeJwt(token);
+        return payload && payload.role === role;
+      }
+
+      async function loadMe() {
+        const pill = $("#me-pill");
+        try {
+          const data = await Learnly.api("/api/auth/me");
+          pill.textContent = `Session: ${data.user.email} (${data.user.role})`;
+        } catch {
+          pill.textContent = "Session: missing/invalid token";
+        }
+      }
+
+      async function refreshMyCourses() {
+        const status = $("#my-status");
+        const out = $("#my-courses");
+        setStatus(status, "Loading…", "");
+        out.innerHTML = "";
+        try {
+          const rows = await Learnly.api("/api/courses/my");
+          if (!rows || rows.length === 0) out.innerHTML = '<div class="muted" style="margin-top:10px;">No courses yet.</div>';
+          else {
+            const ul = document.createElement("ul");
+            rows.forEach((c) => {
+              const li = document.createElement("li");
+              li.textContent = `#${c.id} — ${c.title}`;
+              ul.appendChild(li);
+            });
+            out.appendChild(ul);
+          }
+          setStatus(status, "", "");
+        } catch (e) {
+          setStatus(status, e.message, "error");
+        }
+      }
+
+      async function createCourse(e) {
+        e.preventDefault();
+        const status = $("#course-status");
+        setStatus(status, "Creating…", "");
+        try {
+          await Learnly.api("/api/courses", { method: "POST", json: { title: $("#ctitle").value.trim(), description: $("#cdesc").value.trim() } });
+          setStatus(status, "Course created.", "ok");
+          $("#ctitle").value = ""; $("#cdesc").value = "";
+          refreshMyCourses();
+        } catch (e) {
+          setStatus(status, e.message, "error");
+        }
+      }
+
+      async function addMaterial(e) {
+        e.preventDefault();
+        const status = $("#mat-status");
+        setStatus(status, "Adding…", "");
+        try {
+          const courseId = $("#mat-course").value.trim();
+          await Learnly.api(`/api/courses/${encodeURIComponent(courseId)}/materials`, {
+            method: "POST",
+            json: { type: $("#mat-type").value, title: $("#mat-title").value.trim(), url: $("#mat-url").value.trim() },
+          });
+          setStatus(status, "Material added.", "ok");
+          $("#mat-title").value = ""; $("#mat-url").value = "";
+        } catch (e) {
+          setStatus(status, e.message, "error");
+        }
+      }
+
+      async function createAssignment(e) {
+        e.preventDefault();
+        const status = $("#a-status");
+        setStatus(status, "Creating…", "");
+        try {
+          await Learnly.api("/api/assignments", {
+            method: "POST",
+            json: {
+              courseId: $("#a-course").value.trim(),
+              title: $("#a-title").value.trim(),
+              description: $("#a-desc").value.trim(),
+              dueDate: $("#a-due").value.trim(),
+            },
+          });
+          setStatus(status, "Assignment created.", "ok");
+          $("#a-title").value = ""; $("#a-desc").value = ""; $("#a-due").value = "";
+        } catch (e) {
+          setStatus(status, e.message, "error");
+        }
+      }
+
+      async function loadSubmissions() {
+        const status = $("#g-status");
+        const out = $("#subs-out");
+        out.innerHTML = "";
+        setStatus(status, "Loading…", "");
+        try {
+          const assignmentId = $("#g-assignment").value.trim();
+          const rows = await Learnly.api(`/api/submissions/assignment/${encodeURIComponent(assignmentId)}`);
+          if (!rows || rows.length === 0) {
+            out.innerHTML = '<div class="muted" style="margin-top:10px;">No submissions yet.</div>';
+            setStatus(status, "", "");
+            return;
+          }
+          const table = document.createElement("table");
+          table.innerHTML = "<thead><tr><th>Student</th><th>Submission</th><th>Grade</th></tr></thead>";
+          const tb = document.createElement("tbody");
+          rows.forEach((s) => {
+            const tr = document.createElement("tr");
+            const sub = document.createElement("div");
+            sub.innerHTML = `
+              <div class="small muted">${new Date(s.submittedAt).toLocaleString()}</div>
+              ${s.file ? `<div class="small"><a href='/${s.file.path}' target="_blank" rel="noreferrer">Download file</a></div>` : ""}
+              ${s.text ? `<div class="small" style="white-space:pre-wrap; margin-top:6px;">${escapeHtml(s.text).slice(0, 500)}</div>` : ""}
+            `;
+
+            const gradeBox = document.createElement("div");
+            gradeBox.innerHTML = `
+              <div class="row" style="align-items:center;">
+                <input data-score placeholder="Score" style="max-width:120px;" value="${s.grade && s.grade.score !== undefined ? s.grade.score : ""}" />
+                <input data-feedback placeholder="Feedback" value="${s.grade && s.grade.feedback ? escapeAttr(s.grade.feedback) : ""}" />
+                <button data-grade>Save</button>
+              </div>
+              <div class="small muted" style="margin-top:6px;">submissionId: ${s.id}</div>
+            `;
+            gradeBox.querySelector("[data-grade]").addEventListener("click", async () => {
+              try {
+                const score = Number(gradeBox.querySelector("[data-score]").value);
+                const feedback = gradeBox.querySelector("[data-feedback]").value;
+                await Learnly.api(`/api/submissions/${encodeURIComponent(s.id)}/grade`, { method: "PATCH", json: { score, feedback } });
+                setStatus(status, "Saved grade.", "ok");
+              } catch (e) {
+                setStatus(status, e.message, "error");
+              }
+            });
+
+            tr.innerHTML = `
+              <td>${s.student ? `${s.student.name}<div class="small muted">${s.student.email}</div>` : "—"}</td>
+              <td></td>
+              <td></td>
+            `;
+            tr.children[1].appendChild(sub);
+            tr.children[2].appendChild(gradeBox);
+            tb.appendChild(tr);
+          });
+          table.appendChild(tb);
+          out.appendChild(table);
+          setStatus(status, `Loaded ${rows.length}.`, "ok");
+        } catch (e) {
+          setStatus(status, e.message, "error");
+        }
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[c]));
+      }
+      function escapeAttr(s) { return escapeHtml(s).replace(/'/g, "&#39;"); }
+
+      async function refreshNotifications() {
+        const status = $("#n-status");
+        const out = $("#n-list");
+        out.innerHTML = "";
+        setStatus(status, "Loading…", "");
+        try {
+          const rows = await Learnly.api("/api/notifications?limit=30");
+          if (!rows || rows.length === 0) {
+            out.innerHTML = '<div class="muted" style="margin-top:10px;">No notifications.</div>';
+            setStatus(status, "", "");
+            return;
+          }
+          const ul = document.createElement("ul");
+          rows.forEach((n) => {
+            const li = document.createElement("li");
+            li.textContent = `${n.readAt ? "✓ " : "• "}${n.message}`;
+            ul.appendChild(li);
+          });
+          out.appendChild(ul);
+          setStatus(status, `Loaded ${rows.length}.`, "ok");
+        } catch (e) {
+          setStatus(status, e.message, "error");
+        }
+      }
+
+      function init() {
+        if (!requireRole("instructor")) window.location.replace("/dashboard.html");
+        $("#btn-logout").addEventListener("click", () => { Learnly.clearToken(); window.location.href = "/signin.html"; });
+        $("#btn-refresh-my").addEventListener("click", refreshMyCourses);
+        $("#course-form").addEventListener("submit", createCourse);
+        $("#mat-form").addEventListener("submit", addMaterial);
+        $("#a-form").addEventListener("submit", createAssignment);
+        $("#btn-load-subs").addEventListener("click", loadSubmissions);
+        $("#btn-refresh-n").addEventListener("click", refreshNotifications);
+        loadMe();
+        refreshMyCourses();
+        refreshNotifications();
+      }
+      init();
+    </script>
+  </body>
+</html>
