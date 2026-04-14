@@ -1,11 +1,26 @@
 const jwt = require("jsonwebtoken");
 
+function parseCookies(headerValue) {
+  const map = {};
+  if (!headerValue || typeof headerValue !== "string") return map;
+
+  for (const chunk of headerValue.split(";")) {
+    const [name, ...rest] = chunk.split("=");
+    if (!name) continue;
+    map[name.trim()] = decodeURIComponent(rest.join("=").trim());
+  }
+  return map;
+}
+
 function getTokenFromReq(req) {
   let token = req.headers.authorization;
-  if (!token) return null;
-  if (typeof token !== "string") return null;
-  if (token.toLowerCase().startsWith("bearer ")) token = token.slice(7);
-  return token.trim() || null;
+  if (typeof token === "string" && token.trim()) {
+    if (token.toLowerCase().startsWith("bearer ")) token = token.slice(7);
+    return token.trim() || null;
+  }
+
+  const cookies = parseCookies(req.headers.cookie);
+  return cookies.learnly_token || null;
 }
 
 function requireAuth(req, res, next) {
@@ -23,4 +38,3 @@ function requireAuth(req, res, next) {
 }
 
 module.exports = { requireAuth, getTokenFromReq };
-

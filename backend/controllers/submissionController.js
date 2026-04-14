@@ -1,5 +1,17 @@
 const db = require("../config/db");
 const { toId } = require("./courseController");
+const { writeAuditLog } = require("../services/auditLog");
+
+function mapFile(path, originalName, mimeType, size) {
+  if (!path) return null;
+  return {
+    originalName,
+    mimeType,
+    size,
+    path,
+    url: `/${String(path).replace(/\\/g, "/")}`,
+  };
+}
 
 async function loadAssignmentAndCourse(assignmentId) {
   const rows = await db.query(
@@ -8,6 +20,7 @@ async function loadAssignmentAndCourse(assignmentId) {
       a.id AS assignmentId,
       a.title AS assignmentTitle,
       a.course_id AS courseId,
+      c.title AS courseTitle,
       c.instructor_id AS instructorId
     FROM assignments a
     JOIN courses c ON c.id = a.course_id
@@ -56,16 +69,7 @@ async function submit(req, res) {
         (assignment_id, course_id, student_id, text, file_original_name, file_mime_type, file_size, file_path, submitted_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(3))
     `,
-      [
-        assignmentId,
-        info.courseId,
-        studentId,
-        text ? String(text).slice(0, 20000) : null,
-        fileOriginal,
-        fileMime,
-        fileSize,
-        filePath,
-      ]
+      [assignmentId, info.courseId, studentId, text ? String(text).slice(0, 20000) : null, fileOriginal, fileMime, fileSize, filePath]
     );
 
     await db.exec("INSERT INTO notifications (user_id, type, message, meta) VALUES (?, ?, ?, ?)", [
@@ -74,6 +78,15 @@ async function submit(req, res) {
       `New submission for "${info.assignmentTitle}"`,
       JSON.stringify({ courseId: String(info.courseId), assignmentId: String(info.assignmentId), submissionId: String(result.insertId) }),
     ]);
+
+    await writeAuditLog({
+      actorUserId: studentId,
+      action: "submission.created",
+      entityType: "submission",
+      entityId: result.insertId,
+      message: `Submission created for ${info.assignmentTitle}`,
+      meta: { courseId: String(info.courseId), assignmentId: String(info.assignmentId) },
+    });
 
     return res.status(201).json({ message: "Submitted", submission: { id: String(result.insertId) } });
   } catch (e) {
@@ -124,9 +137,7 @@ async function listByAssignment(req, res) {
       assignmentId: String(r.assignmentId),
       student: { id: String(r.studentId), name: r.studentName, email: r.studentEmail },
       text: r.text || "",
-      file: r.path
-        ? { originalName: r.fileOriginalName, mimeType: r.mimeType, size: r.size, path: r.path }
-        : null,
+      file: mapFile(r.path, r.fileOriginalName, r.mimeType, r.size),
       submittedAt: r.submittedAt,
       grade:
         r.gradeScore !== null && r.gradeScore !== undefined
@@ -169,13 +180,58 @@ async function mySubmission(req, res) {
     id: String(r.id),
     assignmentId: String(r.assignmentId),
     text: r.text || "",
-    file: r.path ? { originalName: r.fileOriginalName, mimeType: r.mimeType, size: r.size, path: r.path } : null,
+    file: mapFile(r.path, r.fileOriginalName, r.mimeType, r.size),
     submittedAt: r.submittedAt,
     grade:
       r.gradeScore !== null && r.gradeScore !== undefined
         ? { score: Number(r.gradeScore), feedback: r.gradeFeedback || "", gradedBy: r.gradedBy, gradedAt: r.gradedAt }
         : null,
   });
+}
+
+async function listMine(req, res) {
+  const studentId = toId(req.user.id);
+  const rows = await db.query(
+    `
+    SELECT
+      s.id,
+      s.assignment_id AS assignmentId,
+      s.course_id AS courseId,
+      s.text,
+      s.file_original_name AS fileOriginalName,
+      s.file_mime_type AS mimeType,
+      s.file_size AS size,
+      s.file_path AS path,
+      s.submitted_at AS submittedAt,
+      s.grade_score AS gradeScore,
+      s.grade_feedback AS gradeFeedback,
+      s.graded_at AS gradedAt,
+      a.title AS assignmentTitle,
+      c.title AS courseTitle
+    FROM submissions s
+    JOIN assignments a ON a.id = s.assignment_id
+    JOIN courses c ON c.id = s.course_id
+    WHERE s.student_id = ?
+    ORDER BY s.submitted_at DESC
+  `,
+    [studentId]
+  );
+
+  return res.json(
+    (rows || []).map((r) => ({
+      id: String(r.id),
+      assignmentId: String(r.assignmentId),
+      courseId: String(r.courseId),
+      assignmentTitle: r.assignmentTitle,
+      courseTitle: r.courseTitle,
+      text: r.text || "",
+      file: mapFile(r.path, r.fileOriginalName, r.mimeType, r.size),
+      submittedAt: r.submittedAt,
+      gradeScore: r.gradeScore !== null ? Number(r.gradeScore) : null,
+      gradeFeedback: r.gradeFeedback || "",
+      gradedAt: r.gradedAt,
+    }))
+  );
 }
 
 async function grade(req, res) {
@@ -211,10 +267,12 @@ async function grade(req, res) {
   const isOwner = req.user.role === "instructor" && Number(info.instructorId) === userId;
   if (!isAdmin && !isOwner) return res.status(403).json({ message: "Forbidden" });
 
-  await db.exec(
-    "UPDATE submissions SET grade_score = ?, grade_feedback = ?, graded_by = ?, graded_at = NOW(3) WHERE id = ?",
-    [Math.round(score), String(feedback).slice(0, 5000), userId, submissionId]
-  );
+  await db.exec("UPDATE submissions SET grade_score = ?, grade_feedback = ?, graded_by = ?, graded_at = NOW(3) WHERE id = ?", [
+    Math.round(score),
+    String(feedback).slice(0, 5000),
+    userId,
+    submissionId,
+  ]);
 
   await db.exec("INSERT INTO notifications (user_id, type, message, meta) VALUES (?, ?, ?, ?)", [
     info.studentId,
@@ -223,8 +281,16 @@ async function grade(req, res) {
     JSON.stringify({ courseId: String(info.courseId), assignmentId: String(info.assignmentId), submissionId: String(submissionId) }),
   ]);
 
+  await writeAuditLog({
+    actorUserId: userId,
+    action: "submission.graded",
+    entityType: "submission",
+    entityId: submissionId,
+    message: `Submission graded for ${info.assignmentTitle}`,
+    meta: { score: Math.round(score), assignmentId: String(info.assignmentId) },
+  });
+
   return res.json({ message: "Graded" });
 }
 
-module.exports = { submit, listByAssignment, mySubmission, grade };
-
+module.exports = { submit, listByAssignment, mySubmission, listMine, grade };

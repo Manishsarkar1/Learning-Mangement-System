@@ -1,5 +1,6 @@
 const db = require("../config/db");
 const { toId } = require("./courseController");
+const { listPermissions } = require("../services/permissions");
 
 function formatDateLabel(value) {
   const date = new Date(value);
@@ -23,7 +24,26 @@ function initials(name) {
 }
 
 async function loadProfile(userId) {
-  const rows = await db.query("SELECT id, name, email, role, created_at AS createdAt FROM users WHERE id = ? LIMIT 1", [userId]);
+  const rows = await db.query(
+    `
+    SELECT
+      u.id,
+      u.name,
+      u.email,
+      u.role,
+      u.created_at AS createdAt,
+      p.title,
+      p.bio,
+      p.phone,
+      p.timezone,
+      p.avatar_url AS avatarUrl
+    FROM users u
+    LEFT JOIN user_profiles p ON p.user_id = u.id
+    WHERE u.id = ?
+    LIMIT 1
+  `,
+    [userId]
+  );
   if (!rows || rows.length === 0) return null;
   const user = rows[0];
   return {
@@ -33,6 +53,11 @@ async function loadProfile(userId) {
     role: user.role,
     initials: initials(user.name),
     createdAt: user.createdAt,
+    title: user.title || "",
+    bio: user.bio || "",
+    phone: user.phone || "",
+    timezone: user.timezone || "",
+    avatarUrl: user.avatarUrl || "",
   };
 }
 
@@ -44,7 +69,7 @@ async function loadNotificationSummary(userId) {
     FROM notifications
     WHERE user_id = ?
     ORDER BY created_at DESC
-    LIMIT 6
+    LIMIT 8
   `,
     [userId]
   );
@@ -60,6 +85,64 @@ async function loadNotificationSummary(userId) {
       createdAt: row.createdAt,
     })),
   };
+}
+
+async function loadAnnouncementsForRole(userId, role) {
+  let rows;
+  if (role === "admin") {
+    rows = await db.query(
+      `
+      SELECT a.id, a.course_id AS courseId, a.audience, a.title, a.body, a.created_at AS createdAt, c.title AS courseTitle, u.name AS authorName
+      FROM announcements a
+      LEFT JOIN courses c ON c.id = a.course_id
+      JOIN users u ON u.id = a.author_id
+      ORDER BY a.created_at DESC
+      LIMIT 6
+    `
+    );
+  } else if (role === "instructor") {
+    rows = await db.query(
+      `
+      SELECT a.id, a.course_id AS courseId, a.audience, a.title, a.body, a.created_at AS createdAt, c.title AS courseTitle, u.name AS authorName
+      FROM announcements a
+      LEFT JOIN courses c ON c.id = a.course_id
+      JOIN users u ON u.id = a.author_id
+      WHERE (a.course_id IS NULL AND a.audience IN ('all', 'instructors'))
+         OR c.instructor_id = ?
+      ORDER BY a.created_at DESC
+      LIMIT 6
+    `,
+      [userId]
+    );
+  } else {
+    rows = await db.query(
+      `
+      SELECT a.id, a.course_id AS courseId, a.audience, a.title, a.body, a.created_at AS createdAt, c.title AS courseTitle, u.name AS authorName
+      FROM announcements a
+      LEFT JOIN courses c ON c.id = a.course_id
+      JOIN users u ON u.id = a.author_id
+      WHERE (a.course_id IS NULL AND a.audience IN ('all', 'students'))
+         OR EXISTS (
+           SELECT 1 FROM enrollments e
+           WHERE e.course_id = a.course_id AND e.student_id = ?
+         )
+      ORDER BY a.created_at DESC
+      LIMIT 6
+    `,
+      [userId]
+    );
+  }
+
+  return (rows || []).map((row) => ({
+    id: String(row.id),
+    courseId: row.courseId ? String(row.courseId) : null,
+    courseTitle: row.courseTitle || "",
+    audience: row.audience,
+    title: row.title,
+    body: row.body,
+    authorName: row.authorName,
+    createdAt: row.createdAt,
+  }));
 }
 
 async function buildStudentDashboard(userId) {
@@ -78,31 +161,38 @@ async function buildStudentDashboard(userId) {
         SELECT ROUND(AVG(s.grade_score))
         FROM submissions s
         WHERE s.course_id = c.id AND s.student_id = ? AND s.grade_score IS NOT NULL
-      ) AS averageScore
+      ) AS averageScore,
+      (
+        SELECT qa.score
+        FROM quiz_attempts qa
+        JOIN quizzes q ON q.id = qa.quiz_id
+        WHERE q.course_id = c.id AND qa.student_id = ?
+        ORDER BY qa.submitted_at DESC
+        LIMIT 1
+      ) AS latestQuizScore
     FROM enrollments e
     JOIN courses c ON c.id = e.course_id
     JOIN users u ON u.id = c.instructor_id
     WHERE e.student_id = ?
     ORDER BY c.created_at DESC
   `,
-    [userId, userId, userId]
+    [userId, userId, userId, userId]
   );
 
   const courses = (courseRows || []).map((row) => {
     const assignmentCount = Number(row.assignmentCount) || 0;
     const submissionCount = Number(row.submissionCount) || 0;
-    const materialCount = Number(row.materialCount) || 0;
-    const progress = assignmentCount > 0 ? Math.round((submissionCount / assignmentCount) * 100) : materialCount > 0 ? 15 : 0;
     return {
       id: String(row.id),
       title: row.title,
       description: row.description,
       instructorName: row.instructorName,
-      materialCount,
+      materialCount: Number(row.materialCount) || 0,
       assignmentCount,
       submissionCount,
       averageScore: row.averageScore !== null ? Number(row.averageScore) : null,
-      progress,
+      latestQuizScore: row.latestQuizScore !== null ? Number(row.latestQuizScore) : null,
+      progress: assignmentCount > 0 ? Math.round((submissionCount / assignmentCount) * 100) : 0,
       createdAt: row.createdAt,
     };
   });
@@ -167,7 +257,14 @@ async function buildStudentDashboard(userId) {
       q.title,
       q.created_at AS createdAt,
       c.title AS courseTitle,
-      (SELECT COUNT(*) FROM quiz_questions qq WHERE qq.quiz_id = q.id) AS questionCount
+      (SELECT COUNT(*) FROM quiz_questions qq WHERE qq.quiz_id = q.id) AS questionCount,
+      (
+        SELECT qa.score
+        FROM quiz_attempts qa
+        WHERE qa.quiz_id = q.id AND qa.student_id = ?
+        ORDER BY qa.submitted_at DESC
+        LIMIT 1
+      ) AS latestScore
     FROM quizzes q
     JOIN enrollments e ON e.course_id = q.course_id
     JOIN courses c ON c.id = q.course_id
@@ -175,7 +272,7 @@ async function buildStudentDashboard(userId) {
     ORDER BY q.created_at DESC
     LIMIT 6
   `,
-    [userId]
+    [userId, userId]
   );
 
   const activityRows = await db.query(
@@ -218,9 +315,10 @@ async function buildStudentDashboard(userId) {
       title: row.title,
       courseTitle: row.courseTitle,
       questionCount: Number(row.questionCount) || 0,
+      latestScore: row.latestScore !== null ? Number(row.latestScore) : null,
       createdAt: row.createdAt,
-      status: "available",
     })),
+    announcements: await loadAnnouncementsForRole(userId, "student"),
     analytics: {
       weeklyActivity: (activityRows || []).map((row) => ({
         label: formatDayLabel(row.bucket),
@@ -240,6 +338,7 @@ async function buildInstructorDashboard(userId) {
       c.created_at AS createdAt,
       (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS studentCount,
       (SELECT COUNT(*) FROM assignments a WHERE a.course_id = c.id) AS assignmentCount,
+      (SELECT COUNT(*) FROM announcements an WHERE an.course_id = c.id) AS announcementCount,
       (
         SELECT ROUND(AVG(s.grade_score))
         FROM submissions s
@@ -256,18 +355,6 @@ async function buildInstructorDashboard(userId) {
   `,
     [userId]
   );
-
-  const courses = (courseRows || []).map((row) => ({
-    id: String(row.id),
-    title: row.title,
-    description: row.description,
-    studentCount: Number(row.studentCount) || 0,
-    assignmentCount: Number(row.assignmentCount) || 0,
-    averageScore: row.averageScore !== null ? Number(row.averageScore) : null,
-    pendingReviews: Number(row.pendingReviews) || 0,
-    createdAt: row.createdAt,
-    status: Number(row.assignmentCount) > 0 || Number(row.studentCount) > 0 ? "active" : "draft",
-  }));
 
   const [studentCountRow] = await db.query(
     `
@@ -293,35 +380,6 @@ async function buildInstructorDashboard(userId) {
     FROM submissions s
     JOIN courses c ON c.id = s.course_id
     WHERE c.instructor_id = ? AND s.grade_score IS NOT NULL
-  `,
-    [userId]
-  );
-  const [completionRow] = await db.query(
-    `
-    SELECT ROUND(AVG(course_progress.progress)) AS avgCompletion
-    FROM (
-      SELECT
-        e.student_id,
-        e.course_id,
-        CASE
-          WHEN assignment_counts.assignmentCount > 0
-            THEN (COALESCE(submission_counts.submissionCount, 0) / assignment_counts.assignmentCount) * 100
-          ELSE 0
-        END AS progress
-      FROM enrollments e
-      JOIN courses c ON c.id = e.course_id
-      JOIN (
-        SELECT course_id, COUNT(*) AS assignmentCount
-        FROM assignments
-        GROUP BY course_id
-      ) assignment_counts ON assignment_counts.course_id = e.course_id
-      LEFT JOIN (
-        SELECT course_id, student_id, COUNT(*) AS submissionCount
-        FROM submissions
-        GROUP BY course_id, student_id
-      ) submission_counts ON submission_counts.course_id = e.course_id AND submission_counts.student_id = e.student_id
-      WHERE c.instructor_id = ?
-    ) course_progress
   `,
     [userId]
   );
@@ -376,15 +434,42 @@ async function buildInstructorDashboard(userId) {
     [userId]
   );
 
+  const quizzes = await db.query(
+    `
+    SELECT
+      q.id,
+      q.title,
+      c.title AS courseTitle,
+      q.created_at AS createdAt,
+      (SELECT COUNT(*) FROM quiz_questions qq WHERE qq.quiz_id = q.id) AS questionCount,
+      (SELECT COUNT(*) FROM quiz_attempts qa WHERE qa.quiz_id = q.id) AS attemptCount
+    FROM quizzes q
+    JOIN courses c ON c.id = q.course_id
+    WHERE c.instructor_id = ?
+    ORDER BY q.created_at DESC
+    LIMIT 6
+  `,
+    [userId]
+  );
+
   return {
     stats: {
-      activeCourses: courses.length,
+      activeCourses: courseRows.length,
       totalStudents: Number(studentCountRow && studentCountRow.c) || 0,
       averageScore: avgScoreRow && avgScoreRow.avgScore !== null ? Number(avgScoreRow.avgScore) : null,
-      averageCompletionRate: completionRow && completionRow.avgCompletion !== null ? Number(completionRow.avgCompletion) : 0,
       pendingReviews: Number(pendingRow && pendingRow.c) || 0,
     },
-    courses,
+    courses: (courseRows || []).map((row) => ({
+      id: String(row.id),
+      title: row.title,
+      description: row.description,
+      studentCount: Number(row.studentCount) || 0,
+      assignmentCount: Number(row.assignmentCount) || 0,
+      announcementCount: Number(row.announcementCount) || 0,
+      averageScore: row.averageScore !== null ? Number(row.averageScore) : null,
+      pendingReviews: Number(row.pendingReviews) || 0,
+      createdAt: row.createdAt,
+    })),
     topStudents: (topStudentsRows || []).map((row) => ({
       id: String(row.id),
       name: row.name,
@@ -400,6 +485,15 @@ async function buildInstructorDashboard(userId) {
       courseTitle: row.courseTitle,
       submittedAt: row.submittedAt,
     })),
+    announcements: await loadAnnouncementsForRole(userId, "instructor"),
+    quizzes: (quizzes || []).map((row) => ({
+      id: String(row.id),
+      title: row.title,
+      courseTitle: row.courseTitle,
+      questionCount: Number(row.questionCount) || 0,
+      attemptCount: Number(row.attemptCount) || 0,
+      createdAt: row.createdAt,
+    })),
     analytics: {
       weeklySubmissions: (analyticsRows || []).map((row) => ({
         label: formatDayLabel(row.bucket),
@@ -414,7 +508,8 @@ async function buildAdminDashboard() {
   const [courseCountRow] = await db.query("SELECT COUNT(*) AS c FROM courses");
   const [enrollmentCountRow] = await db.query("SELECT COUNT(*) AS c FROM enrollments");
   const [submissionCountRow] = await db.query("SELECT COUNT(*) AS c FROM submissions");
-  const [pendingReviewsRow] = await db.query("SELECT COUNT(*) AS c FROM submissions WHERE grade_score IS NULL");
+  const [announcementCountRow] = await db.query("SELECT COUNT(*) AS c FROM announcements");
+  const [attemptCountRow] = await db.query("SELECT COUNT(*) AS c FROM quiz_attempts");
 
   const recentUsersRows = await db.query(
     `
@@ -424,18 +519,20 @@ async function buildAdminDashboard() {
     LIMIT 10
   `
   );
-  const courseRows = await db.query(
+
+  const topCoursesRows = await db.query(
     `
     SELECT
       c.id,
       c.title,
       u.name AS instructorName,
-      c.created_at AS createdAt,
-      (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS studentCount
+      COUNT(e.id) AS studentCount
     FROM courses c
     JOIN users u ON u.id = c.instructor_id
-    ORDER BY c.created_at DESC
-    LIMIT 10
+    LEFT JOIN enrollments e ON e.course_id = c.id
+    GROUP BY c.id, c.title, u.name
+    ORDER BY studentCount DESC, c.created_at DESC
+    LIMIT 8
   `
   );
 
@@ -453,42 +550,24 @@ async function buildAdminDashboard() {
   `
   );
 
-  const topCoursesRows = await db.query(
-    `
-    SELECT
-      c.id,
-      c.title,
-      u.name AS instructorName,
-      COUNT(e.id) AS studentCount
-    FROM courses c
-    JOIN users u ON u.id = c.instructor_id
-    LEFT JOIN enrollments e ON e.course_id = c.id
-    GROUP BY c.id, c.title, u.name
-    ORDER BY studentCount DESC, c.created_at DESC
-    LIMIT 6
-  `
-  );
-
   const logRows = await db.query(
     `
-    SELECT created_at AS createdAt, 'user_created' AS kind, CONCAT('User joined: ', name, ' (', role, ')') AS message, email AS actor
-    FROM users
-    UNION ALL
-    SELECT created_at AS createdAt, 'course_created' AS kind, CONCAT('Course created: ', title) AS message, CAST(instructor_id AS CHAR) AS actor
-    FROM courses
-    UNION ALL
-    SELECT submitted_at AS createdAt, 'submission_created' AS kind, CONCAT('Submission received for course #', course_id) AS message, CAST(student_id AS CHAR) AS actor
-    FROM submissions
-    UNION ALL
-    SELECT created_at AS createdAt, type AS kind, message, CAST(user_id AS CHAR) AS actor
-    FROM notifications
-    ORDER BY createdAt DESC
+    SELECT
+      l.id,
+      l.action,
+      l.message,
+      l.created_at AS createdAt,
+      u.name AS actorName
+    FROM audit_logs l
+    LEFT JOIN users u ON u.id = l.actor_user_id
+    ORDER BY l.created_at DESC
     LIMIT 12
   `
   );
 
   const alerts = [];
-  const pendingReviews = Number(pendingReviewsRow && pendingReviewsRow.c) || 0;
+  const pendingReviewsRow = await db.query("SELECT COUNT(*) AS c FROM submissions WHERE grade_score IS NULL");
+  const pendingReviews = Number(pendingReviewsRow[0] && pendingReviewsRow[0].c) || 0;
   if (pendingReviews > 0) {
     alerts.push({
       level: "warning",
@@ -496,32 +575,20 @@ async function buildAdminDashboard() {
       message: `${pendingReviews} submission${pendingReviews === 1 ? "" : "s"} still need instructor review.`,
     });
   }
-  const coursesWithoutStudents = (courseRows || []).filter((row) => Number(row.studentCount) === 0).length;
-  if (coursesWithoutStudents > 0) {
-    alerts.push({
-      level: "info",
-      title: "Courses without enrollments",
-      message: `${coursesWithoutStudents} recent course${coursesWithoutStudents === 1 ? "" : "s"} currently have no enrolled students.`,
-    });
-  }
   alerts.push({
     level: "info",
-    title: "Dashboard data is live",
-    message: "System health, alerts, billing, and permissions are now exposed by the backend for the upgraded admin UI.",
+    title: "Live admin telemetry enabled",
+    message: "Analytics, audit logs, role permissions, quizzes, and announcements are backed by the database.",
   });
-
-  const totalUsers = Number(userCountRow && userCountRow.c) || 0;
-  const totalCourses = Number(courseCountRow && courseCountRow.c) || 0;
-  const totalEnrollments = Number(enrollmentCountRow && enrollmentCountRow.c) || 0;
-  const totalSubmissions = Number(submissionCountRow && submissionCountRow.c) || 0;
 
   return {
     stats: {
-      totalUsers,
-      totalCourses,
-      totalEnrollments,
-      totalSubmissions,
-      pendingReviews,
+      totalUsers: Number(userCountRow && userCountRow.c) || 0,
+      totalCourses: Number(courseCountRow && courseCountRow.c) || 0,
+      totalEnrollments: Number(enrollmentCountRow && enrollmentCountRow.c) || 0,
+      totalSubmissions: Number(submissionCountRow && submissionCountRow.c) || 0,
+      totalAnnouncements: Number(announcementCountRow && announcementCountRow.c) || 0,
+      totalQuizAttempts: Number(attemptCountRow && attemptCountRow.c) || 0,
     },
     recentUsers: (recentUsersRows || []).map((row) => ({
       id: String(row.id),
@@ -531,13 +598,6 @@ async function buildAdminDashboard() {
       createdAt: row.createdAt,
       initials: initials(row.name),
       status: "active",
-    })),
-    courses: (courseRows || []).map((row) => ({
-      id: String(row.id),
-      title: row.title,
-      instructorName: row.instructorName,
-      studentCount: Number(row.studentCount) || 0,
-      createdAt: row.createdAt,
     })),
     analytics: {
       usersByRole,
@@ -553,37 +613,20 @@ async function buildAdminDashboard() {
       })),
     },
     alerts,
-    systemHealth: {
-      apiLatencyMs: Math.max(45, Math.min(180, 45 + Math.round(totalSubmissions / 10))),
-      databaseLoadPct: Math.max(24, Math.min(82, 24 + Math.round(totalEnrollments / 5))),
-      memoryPct: Math.max(32, Math.min(76, 32 + Math.round(totalUsers / 80))),
-      diskPct: 34,
-      activeSessions: Math.max(3, Math.round(totalUsers * 0.12)),
-    },
     logs: (logRows || []).map((row) => ({
-      createdAt: row.createdAt,
-      level: String(row.kind).includes("error") ? "error" : String(row.kind).includes("warning") ? "warn" : "info",
-      kind: row.kind,
+      id: String(row.id),
+      action: row.action,
       message: row.message,
-      actor: row.actor,
+      actorName: row.actorName || "system",
+      createdAt: row.createdAt,
     })),
-    permissions: [
-      { key: "view_courses", label: "View courses", student: true, instructor: true, admin: true },
-      { key: "create_courses", label: "Create courses", student: false, instructor: true, admin: true },
-      { key: "grade_submissions", label: "Grade submissions", student: false, instructor: true, admin: true },
-      { key: "manage_users", label: "Manage users", student: false, instructor: false, admin: true },
-      { key: "view_audit_logs", label: "View audit logs", student: false, instructor: false, admin: true },
-    ],
+    permissions: await listPermissions(),
+    announcements: await loadAnnouncementsForRole(0, "admin"),
     billing: {
       currentPlan: "Enterprise",
-      renewalDate: "2026-04-01",
-      seatEstimate: totalUsers,
-      monthlyEstimateUsd: totalUsers * 24,
-      plans: [
-        { name: "Free", priceUsd: 0, features: ["Up to 3 courses", "Basic quizzes"] },
-        { name: "Pro", priceUsd: 24, features: ["Unlimited courses", "Advanced quizzes", "Analytics dashboard"] },
-        { name: "Enterprise", priceUsd: 79, features: ["SSO", "Priority support", "Custom branding"] },
-      ],
+      renewalDate: "2026-05-01",
+      seatEstimate: Number(userCountRow && userCountRow.c) || 0,
+      monthlyEstimateUsd: (Number(userCountRow && userCountRow.c) || 0) * 24,
     },
   };
 }

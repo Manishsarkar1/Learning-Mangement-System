@@ -5,6 +5,7 @@
 
   function clearToken() {
     localStorage.removeItem("learnly_token");
+    sessionStorage.removeItem("learnly_session_hint");
   }
 
   function decodeJwt(token) {
@@ -35,7 +36,7 @@
       if (token) headers.authorization = token;
     }
 
-    const res = await fetch(path, { method, headers, body });
+    const res = await fetch(path, { method, headers, body, credentials: "same-origin" });
     const data = await res.json().catch(() => null);
     if (!res.ok) {
       const msg = (data && (data.message || data.error)) || `Request failed (${res.status})`;
@@ -47,6 +48,26 @@
     return data;
   }
 
-  window.Learnly = { loadToken, clearToken, decodeJwt, api };
-})();
+  async function logout() {
+    try {
+      await api("/api/auth/logout", { method: "POST" });
+    } catch {
+      // Ignore logout API errors and still clear local state.
+    }
+    clearToken();
+    window.location.href = "/signin.html";
+  }
 
+  function qs(name) {
+    return new URLSearchParams(window.location.search).get(name);
+  }
+
+  function formatDate(value, options) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString("en-US", options || { month: "short", day: "numeric", year: "numeric" });
+  }
+
+  window.Learnly = { loadToken, clearToken, decodeJwt, api, logout, qs, formatDate };
+})();

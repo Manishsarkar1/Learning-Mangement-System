@@ -3,9 +3,10 @@ const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
 
-const { submit, listByAssignment, mySubmission, grade } = require("../controllers/submissionController");
+const { submit, listByAssignment, mySubmission, listMine, grade } = require("../controllers/submissionController");
 const { requireAuth } = require("../middleware/auth");
 const { requireRole } = require("../middleware/requireRole");
+const { requirePermission } = require("../middleware/requirePermission");
 
 const router = express.Router();
 
@@ -36,7 +37,9 @@ router.get("/assignment/:assignmentId", requireAuth, requireRole(["instructor", 
   Promise.resolve(listByAssignment(req, res)).catch(next)
 );
 router.get("/my", requireAuth, requireRole(["student", "admin"]), (req, res, next) => Promise.resolve(mySubmission(req, res)).catch(next));
-router.patch("/:id/grade", requireAuth, requireRole(["instructor", "admin"]), (req, res, next) => Promise.resolve(grade(req, res)).catch(next));
+router.get("/mine", requireAuth, requireRole(["student", "admin"]), (req, res, next) => Promise.resolve(listMine(req, res)).catch(next));
+router.patch("/:id/grade", requireAuth, requireRole(["instructor", "admin"]), requirePermission("grade_submissions"), (req, res, next) =>
+  Promise.resolve(grade(req, res)).catch(next)
+);
 
 module.exports = router;
-

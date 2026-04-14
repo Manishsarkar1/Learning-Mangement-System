@@ -4,47 +4,30 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Learnly — Dashboard</title>
-    <style>
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 40px; background: #0a0a0b; color: #f0efe8; }
-      a { color: #c8f135; text-decoration: none; }
-      .card { max-width: 720px; margin: 0 auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 20px; background: rgba(255,255,255,0.03); }
-      .muted { color: rgba(240,239,232,0.7); line-height: 1.6; }
-      .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
-      .btn { display: inline-block; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.14); color: rgba(240,239,232,0.9); }
-      .btn.primary { background: #c8f135; border-color: transparent; color: #0a0a0b; font-weight: 800; }
-      code { color: #e8c87a; }
-    </style>
+    <link rel="stylesheet" href="/app-shell.css" />
   </head>
   <body>
-    <div class="card">
-      <h1 style="margin:0 0 10px">Dashboard</h1>
-      <p class="muted" style="margin:0">Redirecting based on your JWT role.</p>
-      <p class="muted" id="status" style="margin:10px 0 0"></p>
-      <div class="row">
-        <a class="btn" href="/signin.html">Sign in</a>
-        <a class="btn" href="/signup.html">Sign up</a>
-        <a class="btn primary" href="/">Back to home</a>
+    <div class="page">
+      <div class="card" style="max-width:640px;margin:40px auto;">
+        <h2 style="margin-top:0;">Preparing your dashboard…</h2>
+        <p class="muted" id="dashboard-router-status">Checking your session and role.</p>
       </div>
-      <p class="muted" style="margin:14px 0 0">
-        Token is read from <code>localStorage.learnly_token</code> (set by the existing sign-in page).
-      </p>
     </div>
-
     <script src="/lms.js"></script>
     <script>
-      const status = document.getElementById("status");
-      const token = window.Learnly.loadToken();
-      if (!token) {
-        status.textContent = "No token found. Sign in first.";
-      } else {
-        const payload = window.Learnly.decodeJwt(token);
-        const role = payload && payload.role ? String(payload.role) : "";
-        if (role === "student") window.location.replace("/student-dashboard.html");
-        else if (role === "instructor") window.location.replace("/instructor-dashboard.html");
-        else if (role === "admin") window.location.replace("/admin-dashboard.html");
-        else status.textContent = "Token present, but role is missing/unknown.";
-      }
+      (async function () {
+        const status = document.getElementById("dashboard-router-status");
+        try {
+          const me = await window.Learnly.api("/api/auth/me");
+          const role = me && me.user ? me.user.role : "";
+          if (role === "student") window.location.replace("/student-dashboard.html");
+          else if (role === "instructor") window.location.replace("/instructor-dashboard.html");
+          else if (role === "admin") window.location.replace("/admin-dashboard.html");
+          else status.textContent = "Could not determine your role. Please sign in again.";
+        } catch (error) {
+          status.textContent = error.message || "Session not found. Please sign in.";
+        }
+      })();
     </script>
   </body>
 </html>
-

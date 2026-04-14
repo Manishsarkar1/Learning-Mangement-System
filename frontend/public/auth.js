@@ -44,7 +44,8 @@ async function apiPostJson(path, body) {
 }
 
 function saveToken(token) {
-  localStorage.setItem("learnly_token", token);
+  localStorage.removeItem("learnly_token");
+  sessionStorage.setItem("learnly_session_hint", token ? "1" : "0");
 
   if (window.location.pathname === "/signin.html") {
     window.setTimeout(() => {
@@ -59,6 +60,7 @@ function loadToken() {
 
 function clearToken() {
   localStorage.removeItem("learnly_token");
+  sessionStorage.removeItem("learnly_session_hint");
 }
 
 function bindSignInForm() {
