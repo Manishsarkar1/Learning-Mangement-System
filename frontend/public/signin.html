@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Learnly — Sign in</title>
     <style>
+      *, *::before, *::after { box-sizing: border-box; }
+
       body {
         font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
         margin: 0;
@@ -56,33 +58,8 @@
       #status[data-type="error"] { color: #ff8b8b; }
       #status[data-type="ok"] { color: #c8f135; }
 
-      .token-box {
-        margin-top: 16px;
-        padding: 12px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(255, 255, 255, 0.02);
-        display: none;
-      }
-
-      .token-box pre {
-        margin: 8px 0 0;
-        white-space: pre-wrap;
-        word-break: break-word;
-        font-size: 12px;
-        color: rgba(240, 239, 232, 0.75);
-      }
-
-      .secondary {
-        width: 100%;
-        margin-top: 10px;
-        padding: 10px 14px;
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        background: transparent;
-        color: rgba(240, 239, 232, 0.85);
-        font-weight: 600;
-        cursor: pointer;
+      @media (max-width: 640px) {
+        body { padding: 24px; }
       }
     </style>
   </head>
@@ -90,7 +67,7 @@
     <div class="card">
       <h1 style="margin: 0 0 12px">Sign in</h1>
       <p class="muted" style="margin: 0 0 18px">
-        Sign in to get a JWT token. This posts to <code>POST /api/auth/login</code> on this server.
+        Sign in to continue. This posts to <code>POST /api/auth/login</code> on this server.
       </p>
 
       <form id="login-form">
@@ -101,70 +78,13 @@
         <input id="password" name="password" type="password" autocomplete="current-password" required />
 
         <button id="submit" type="submit">Sign in</button>
-        <button id="logout" class="secondary" type="button">Clear saved token</button>
-
         <div id="status" class="muted" aria-live="polite"></div>
       </form>
-
-      <div class="token-box" id="token-box">
-        <div class="muted">Saved token (localStorage key: <code>learnly_token</code>)</div>
-        <pre id="token-text"></pre>
-      </div>
 
       <p class="muted" style="margin: 16px 0 0">New here? <a href="/signup.html">Create an account</a></p>
       <p style="margin: 16px 0 0"><a href="/">← Back to home</a></p>
     </div>
 
     <script src="/auth.js"></script>
-    <script>
-      const { $, setStatus, apiPostJson, saveToken, loadToken, clearToken } = window.LearnlyAuth;
-
-      function renderToken() {
-        const token = loadToken();
-        const box = $("#token-box");
-        const text = $("#token-text");
-
-        if (!token) {
-          box.style.display = "none";
-          text.textContent = "";
-          return;
-        }
-
-        box.style.display = "block";
-        text.textContent = token;
-      }
-
-      $("#logout").addEventListener("click", () => {
-        clearToken();
-        setStatus("Saved token cleared.", "ok");
-        renderToken();
-      });
-
-      $("#login-form").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        setStatus("", "");
-
-        const submit = $("#submit");
-        submit.disabled = true;
-        submit.textContent = "Signing in…";
-
-        try {
-          const data = await apiPostJson("/api/auth/login", {
-            email: $("#email").value.trim().toLowerCase(),
-            password: $("#password").value,
-          });
-          saveToken(data.token);
-          setStatus("Signed in. Token saved.", "ok");
-          renderToken();
-        } catch (err) {
-          setStatus(err.message || "Login failed", "error");
-        } finally {
-          submit.disabled = false;
-          submit.textContent = "Sign in";
-        }
-      });
-
-      renderToken();
-    </script>
   </body>
 </html>
