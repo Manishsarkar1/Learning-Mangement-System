@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Learnly LMS - README</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #000000;
+      --surface: #0a0a0a;
+      --border: #1a1a1a;
+      --border-bright: #2a2a2a;
+      --text: #e8e8e8;
+      --muted: #555555;
+      --accent: #ffffff;
+      --dim: #888888;
+      --code-bg: #0f0f0f;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at top, #111111 0%, #000000 45%),
+        var(--bg);
+      color: var(--text);
+      font-family: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-weight: 300;
+      line-height: 1.7;
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 64px 32px 96px;
+    }
+
+    .header {
+      border-bottom: 1px solid var(--border-bright);
+      padding-bottom: 40px;
+      margin-bottom: 56px;
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-family: "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+      font-size: 10px;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border: 1px solid var(--border-bright);
+      color: var(--dim);
+      background: #050505;
+    }
+
+    .badge.active {
+      border-color: #ffffff22;
+      color: var(--text);
+    }
+
+    h1 {
+      font-family: "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+      font-size: clamp(26px, 5vw, 40px);
+      font-weight: 300;
+      letter-spacing: -0.03em;
+      color: var(--accent);
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .subtitle {
+      color: var(--dim);
+      font-size: 15px;
+      font-weight: 300;
+      max-width: 650px;
+    }
+
+    section {
+      margin-bottom: 48px;
+    }
+
+    .section-label {
+      font-family: "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-label::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    p {
+      color: #a9a9a9;
+      font-size: 14.5px;
+      margin-bottom: 14px;
+      font-weight: 300;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+
+    .feature-item {
+      background: var(--bg);
+      padding: 18px 20px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .feature-icon {
+      font-size: 13px;
+      color: var(--muted);
+      padding-top: 1px;
+      flex-shrink: 0;
+      font-family: "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+      min-width: 24px;
+    }
+
+    .feature-text {
+      font-size: 13.5px;
+      color: #bbbbbb;
+      font-weight: 300;
+    }
+
+    .feature-text strong {
+      display: block;
+      color: var(--text);
+      font-weight: 500;
+      margin-bottom: 2px;
+      font-size: 13px;
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border-bright);
+      padding: 20px 24px;
+      font-family: "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+      font-size: 12.5px;
+      color: #cccccc;
+      overflow-x: auto;
+      line-height: 1.8;
+      white-space: pre;
+    }
+
+    pre .prompt {
+      color: var(--muted);
+      user-select: none;
+    }
+
+    pre .cmd {
+      color: #e8e8e8;
+    }
+
+    pre .comment {
+      color: var(--muted);
+    }
+
+    .stack-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .stack-tag {
+      font-family: "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+      font-size: 11px;
+      color: #999999;
+      border: 1px solid var(--border-bright);
+      padding: 5px 12px;
+      letter-spacing: 0.04em;
+      background: #050505;
+    }
+
+    .tree {
+      font-family: "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+      font-size: 12.5px;
+      line-height: 1.9;
+      color: #777777;
+      background: var(--code-bg);
+      border: 1px solid var(--border-bright);
+      padding: 20px 24px;
+      overflow-x: auto;
+    }
+
+    .tree .dir {
+      color: #bbbbbb;
+    }
+
+    .tree .file {
+      color: #666666;
+    }
+
+    .role-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    .role-table th {
+      font-family: "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: left;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-bright);
+      font-weight: 400;
+    }
+
+    .role-table td {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border);
+      color: #aaaaaa;
+      font-weight: 300;
+      vertical-align: top;
+    }
+
+    .role-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .role-name {
+      color: var(--text);
+      font-weight: 500;
+      font-size: 13px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+    }
+
+    .card {
+      border: 1px solid var(--border-bright);
+      background: linear-gradient(180deg, #0b0b0b 0%, #090909 100%);
+      padding: 20px 22px;
+    }
+
+    .mini-list {
+      margin-top: 8px;
+      padding-left: 18px;
+      color: #ababab;
+      font-size: 14px;
+    }
+
+    .mini-list li + li {
+      margin-top: 8px;
+    }
+
+    footer {
+      margin-top: 72px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    footer span {
+      font-family: "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    footer a {
+      color: var(--muted);
+      text-decoration: none;
+      font-family: "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-bright);
+      transition: color 0.2s ease, border-color 0.2s ease;
+    }
+
+    footer a:hover {
+      color: var(--text);
+      border-color: #ffffff55;
+    }
+
+    @media (max-width: 760px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .feature-grid {
+        grid-template-columns: 1fr;
+      }
+
+      body {
+        padding: 40px 20px 64px;
+      }
+    }
+  </style>
+</head>
+<body id="top">
+  <header class="header">
+    <div class="badge-row">
+      <span class="badge active">Node.js</span>
+      <span class="badge active">Express</span>
+      <span class="badge active">MySQL</span>
+      <span class="badge">JWT</span>
+      <span class="badge">v1.0</span>
+      <span class="badge">Learning Platform</span>
+    </div>
+    <h1>Learnly LMS</h1>
+    <p class="subtitle">A role-based learning management system for students, instructors, and admins. It brings courses, assignments, quizzes, announcements, uploads, and analytics into one unified platform.</p>
+  </header>
+
+  <section>
+    <div class="section-label">Overview</div>
+    <div class="grid-2">
+      <div class="card">
+        <p>Learnly LMS is built to streamline the interaction between educators and learners. The system supports course browsing, enrollment, assignment submissions, quiz attempts, announcements, notifications, and profile management.</p>
+        <p>The backend is powered by Node.js, Express, and MySQL, while the frontend uses static HTML, CSS, and JavaScript pages served from <code>frontend/public/</code>.</p>
+      </div>
+      <div class="card">
+        <p>Designed for a clean role-based workflow:</p>
+        <ul class="mini-list">
+          <li>Students can enroll, submit work, and track progress.</li>
+          <li>Instructors can create content, grade submissions, and post updates.</li>
+          <li>Admins can manage users, permissions, analytics, and audit logs.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">Features</div>
+    <div class="feature-grid">
+      <div class="feature-item">
+        <span class="feature-icon">01</span>
+        <div class="feature-text">
+          <strong>Role-Based Access</strong>
+          Separate experiences and permissions for Student, Instructor, and Admin accounts.
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">02</span>
+        <div class="feature-text">
+          <strong>Course Management</strong>
+          Browse, create, enroll in, and manage courses and materials.
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">03</span>
+        <div class="feature-text">
+          <strong>Assignments and Uploads</strong>
+          Submit text or files, review grading, and store uploads in <code>uploads/submissions/</code>.
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">04</span>
+        <div class="feature-text">
+          <strong>Quizzes and Attempts</strong>
+          Build quizzes, add questions, submit attempts, and save scores.
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">05</span>
+        <div class="feature-text">
+          <strong>Announcements and Notifications</strong>
+          Post course updates, send notices, and mark notifications as read.
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">06</span>
+        <div class="feature-text">
+          <strong>Admin Controls</strong>
+          Manage users, permissions, analytics, courses, and audit logs from one place.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">Tech Stack</div>
+    <div class="stack-row">
+      <span class="stack-tag">Node.js</span>
+      <span class="stack-tag">Express</span>
+      <span class="stack-tag">MySQL</span>
+      <span class="stack-tag">mysql2</span>
+      <span class="stack-tag">JWT</span>
+      <span class="stack-tag">bcrypt</span>
+      <span class="stack-tag">multer</span>
+      <span class="stack-tag">HTML / CSS / JS</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">Getting Started</div>
+    <pre>
+<span class="comment"># Install dependencies</span>
+<span class="prompt">$ </span><span class="cmd">npm install</span>
+
+<span class="comment"># Copy the environment file</span>
+<span class="prompt">$ </span><span class="cmd">Copy-Item .env.example .env</span>
+
+<span class="comment"># Create the database in MySQL</span>
+<span class="prompt">mysql&gt; </span><span class="cmd">CREATE DATABASE learnly_lms CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;</span>
+
+<span class="comment"># Seed demo data and schema</span>
+<span class="prompt">$ </span><span class="cmd">npm run seed</span>
+
+<span class="comment"># Start the app</span>
+<span class="prompt">$ </span><span class="cmd">npm start</span>
+
+<span class="comment"># Optional development mode</span>
+<span class="prompt">$ </span><span class="cmd">npm run dev</span>
+    </pre>
+    <p><strong>Demo accounts:</strong> admin@learnly.local, instructor@learnly.local, student@learnly.local, james@learnly.local, riya@learnly.local, kwame@learnly.local</p>
+    <p><strong>Password:</strong> Password123!</p>
+  </section>
+
+  <section>
+    <div class="section-label">Project Structure</div>
+    <div class="tree">
+<span class="dir">learnly-lms/</span>
+├── <span class="dir">backend/</span>              <span class="file">server, routes, controllers, middleware, services</span>
+├── <span class="dir">frontend/public/</span>      <span class="file">static landing page, auth pages, dashboards</span>
+├── <span class="dir">uploads/submissions/</span>  <span class="file">assignment file uploads</span>
+├── <span class="file">package.json</span>
+├── <span class="file">README.md</span>
+└── <span class="file">README.html</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">User Roles</div>
+    <table class="role-table">
+      <thead>
+        <tr>
+          <th>Role</th>
+          <th>Capabilities</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="role-name">Admin</span></td>
+          <td>Manage users, courses, permissions, analytics, and audit logs.</td>
+        </tr>
+        <tr>
+          <td><span class="role-name">Instructor</span></td>
+          <td>Create courses, add materials, post announcements, create quizzes, and grade submissions.</td>
+        </tr>
+        <tr>
+          <td><span class="role-name">Student</span></td>
+          <td>Browse courses, enroll, submit assignments, take quizzes, and view progress.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <div class="section-label">Key API Routes</div>
+    <div class="card">
+      <p><code>POST /api/auth/login</code> - sign in and receive a JWT cookie.</p>
+      <p><code>GET /api/courses</code> - list available courses.</p>
+      <p><code>POST /api/submissions</code> - submit assignment text or files.</p>
+      <p><code>POST /api/quizzes/:id/attempt</code> - submit a quiz attempt.</p>
+      <p><code>GET /api/admin/analytics</code> - view admin analytics.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">Contributing</div>
+    <p>Contributions are welcome. Fork the repository, create a feature branch, and open a pull request with a clear summary of your changes.</p>
+    <pre>
+<span class="prompt">$ </span><span class="cmd">git checkout -b codex/your-feature-name</span>
+<span class="prompt">$ </span><span class="cmd">git commit -m "Add: your feature description"</span>
+<span class="prompt">$ </span><span class="cmd">git push origin codex/your-feature-name</span>
+    </pre>
+  </section>
+
+  <footer>
+    <span>&copy; 2026 Learnly LMS</span>
+    <a href="#top">Back to top</a>
+  </footer>
+</body>
+</html>

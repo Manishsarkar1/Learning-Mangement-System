@@ -1,5 +1,7 @@
 # Learnly LMS
 
+> Styled HTML version: [README.html](README.html)
+
 Learnly LMS is a full-stack learning management system built with Node.js, Express, MySQL, JWT auth, and a static HTML/CSS/JS frontend.
 
 It supports three roles:
