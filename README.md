@@ -1,206 +1,207 @@
-# Learnly LMS (Node.js + Express + MySQL + JWT/Cookies)
+# Learnly LMS
 
-Full-fledged LMS web app with role-based dashboards for **Student**, **Instructor**, and **Admin**.
+Learnly LMS is a full-stack learning management system built with Node.js, Express, MySQL, JWT auth, and a static HTML/CSS/JS frontend.
 
-## What is implemented now
+It supports three roles:
 
-- Live role-based dashboards backed by MySQL data
-- Course detail pages with materials, assignments, quizzes, announcements, and roster
-- Assignment submission with file uploads + instructor grading
-- Quiz creation, question authoring, attempts, and saved scores
-- Announcements for courses and global audiences
-- Admin analytics, permissions, and audit logs
-- Profile management + password change
-- Forgot-password / reset-password flow for local development
-- HttpOnly cookie auth support, while raw JWT headers remain backward-compatible
+- Student
+- Instructor
+- Admin
 
-## Important UI constraint (respected)
+## Features
 
-The existing **Landing page** and **Login page** UI are treated as **read-only** (no HTML/CSS/JS changes). They are only wired to backend auth endpoints:
+- Role-based dashboards and permissions
+- Course browsing, enrollment, and course materials
+- Assignment creation, file submissions, and grading
+- Quiz creation, question authoring, and quiz attempts
+- Course-wide and global announcements
+- User notifications
+- Profile management and password changes
+- Forgot-password and reset-password flow for local development
+- Admin analytics, user management, permissions, and audit logs
+- HttpOnly cookie authentication with JWT compatibility for headers and bearer tokens
 
-- Landing: `GET /` (static)
-- Login: `GET /signin.html` → calls `POST /api/auth/login`
+## Tech Stack
 
-## Tech stack
+- Backend: Node.js + Express
+- Database: MySQL via `mysql2`
+- Auth: JWT + `bcrypt`
+- File uploads: `multer`
+- Frontend: static pages in `frontend/public/`
 
-- Frontend: HTML/CSS/JS (static pages under `frontend/public/`)
-- Backend: Node.js + Express (`backend/`)
-- Database: MySQL (`mysql2`)
-- Auth: JWT + bcrypt + HttpOnly auth cookie
+## Project Structure
 
-## Project structure
-
-```
-frontend/
-  public/                 # all static pages (landing/login + dashboards)
+```text
 backend/
-  app.js                  # express app
-  server.js               # boot + MySQL connection
-  config/
-    db.js                 # MySQL pool
-  controllers/
-  middleware/
-  models/
-  routes/
-  scripts/
-    seed.js               # sample data
-uploads/
-  submissions/            # assignment uploads (served at /uploads/*)
+  app.js              Express app, middleware, routes, static hosting
+  server.js           Server bootstrap and DB initialization
+  config/db.js        MySQL pool and query helpers
+  controllers/        Route handlers
+  middleware/         Auth, role, permission, and error handling
+  routes/             API route definitions
+  scripts/            Schema and seed scripts
+  services/           Audit logs and permissions helpers
+frontend/public/      Static landing page, auth pages, and dashboards
+uploads/submissions/  Assignment upload storage
 ```
+
+The app serves the static UI from `frontend/public/`.
+
+## Requirements
+
+- Node.js
+- MySQL
 
 ## Setup
 
-### 1) Install
+### 1. Install dependencies
 
 ```bash
 npm install
 ```
 
-If PowerShell blocks `npm` scripts on your machine, use `npm.cmd` instead (example: `npm.cmd install`).
+### 2. Configure environment variables
 
-### 2) Configure env
+Create a `.env` file from `.env.example`.
 
-Create `.env` (or copy `.env.example`) and set:
+PowerShell:
 
-- `JWT_SECRET`
-- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
-
-Example:
-
-```bash
-cp .env.example .env
+```powershell
+Copy-Item .env.example .env
 ```
 
-### 3) Start MySQL + create DB
+Example configuration:
 
-Ensure MySQL is running and create a database (example):
+```env
+PORT=5000
+JWT_SECRET=change_this_in_production
+
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=learnly_lms
+
+# Optional
+DB_POOL_SIZE=10
+SEED_DROP=1
+```
+
+### 3. Create the database
+
+Create the MySQL database before seeding:
 
 ```sql
 CREATE DATABASE learnly_lms CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 4) Seed sample data (recommended)
+### 4. Seed the database
+
+This applies the schema and loads demo data:
 
 ```bash
 npm run seed
 ```
 
-To wipe tables first:
+To wipe existing tables before reseeding:
 
 ```bash
 SEED_DROP=1 npm run seed
 ```
 
-Seed prints sample credentials:
-
-- `admin@learnly.local` / `Password123!`
-- `instructor@learnly.local` / `Password123!`
-- `student@learnly.local` / `Password123!`
-
-### 5) Run the server
+### 5. Start the app
 
 ```bash
 npm start
 ```
 
-Open:
+For development with auto-reload:
 
-- Landing: `http://localhost:5000/`
-- Sign in: `http://localhost:5000/signin.html`
-- Role dashboard redirect: `http://localhost:5000/dashboard.html`
-- Profile: `http://localhost:5000/profile.html`
-- Forgot password: `http://localhost:5000/forgot-password.html`
-- Course page example: `http://localhost:5000/course.html?id=1`
+```bash
+npm run dev
+```
 
-## Database schema (tables)
+## Scripts
 
-- `users`
-- `courses`
-- `enrollments`
-- `course_materials`
-- `assignments`
-- `submissions` (includes file + grade fields)
-- `notifications` (includes `meta` JSON)
-- `quizzes`, `quiz_questions`
-- `quiz_attempts`
-- `announcements`
-- `user_profiles`
-- `password_resets`
-- `role_permissions`
-- `audit_logs`
+- `npm start` - start the server from `backend/server.js`
+- `npm run dev` - start the server with `nodemon`
+- `npm run seed` - apply the schema and load sample data
 
-Schema file: `backend/scripts/schema.mysql.sql`
+## Demo Accounts
 
-## API (REST)
+All seeded demo users use the password `Password123!`.
+
+- `admin@learnly.local`
+- `instructor@learnly.local`
+- `student@learnly.local`
+- `james@learnly.local`
+- `riya@learnly.local`
+- `kwame@learnly.local`
+
+## Key Pages
+
+These pages are served from `frontend/public/`:
+
+- `/`
+- `/signin.html`
+- `/signup.html`
+- `/dashboard.html`
+- `/student-dashboard.html`
+- `/instructor-dashboard.html`
+- `/admin-dashboard.html`
+- `/course.html?id=1`
+- `/profile.html`
+- `/forgot-password.html`
+- `/reset-password.html`
+- `/privacy.html`
+- `/terms.html`
+
+## API Overview
+
+The backend exposes REST endpoints under `/api`.
 
 ### Auth
 
-- `POST /api/auth/register` (student/instructor only)
-  - body: `{ name, email, password, role }`
+- `POST /api/auth/register`
 - `POST /api/auth/login`
-  - body: `{ email, password }`
-  - response: `{ token, user }`
 - `POST /api/auth/logout`
 - `POST /api/auth/forgot-password`
 - `POST /api/auth/reset-password`
-- `GET /api/auth/me` (auth)
-
-### Auth behavior
-
-The app now signs users in with an **HttpOnly cookie** named `learnly_token`.
-For compatibility, raw JWT headers and `Bearer <jwt>` are still accepted:
-
-```
-authorization: <jwt>
-authorization: Bearer <jwt>
-```
-
-### Profile
-
-- `GET /api/profile`
-- `PATCH /api/profile`
-- `POST /api/profile/password`
-
-### Dashboard
-
-- `GET /api/dashboard/me`
+- `GET /api/auth/me`
 
 ### Courses
 
-- `GET /api/courses` (public, supports `?q=search`)
-- `POST /api/courses` (instructor/admin)
-- `GET /api/courses/my` (auth)
-- `GET /api/courses/:id` (auth)
-- `POST /api/courses/:courseId/enroll` (student/admin)
-- `POST /api/courses/:courseId/materials` (instructor/admin)
-
-Back-compat for the existing demo UI:
-
+- `GET /api/courses`
+- `POST /api/courses`
 - `POST /api/courses/create`
-- `POST /api/courses/enroll` (body `{ course_id }`)
+- `POST /api/courses/enroll`
+- `GET /api/courses/my`
+- `GET /api/courses/:id`
+- `POST /api/courses/:courseId/enroll`
+- `POST /api/courses/:courseId/materials`
 
 ### Assignments
 
-- `GET /api/assignments` (auth, supports search/filter/pagination)
-- `POST /api/assignments` (instructor/admin)
-- `GET /api/assignments/course/:courseId` (auth, must be enrolled/owner/admin)
-- `GET /api/assignments/:id` (auth)
+- `GET /api/assignments`
+- `POST /api/assignments`
+- `GET /api/assignments/course/:courseId`
+- `GET /api/assignments/:id`
 
-### Submissions + grading (file upload supported)
+### Submissions
 
-- `POST /api/submissions` (student/admin, multipart)
-  - fields: `assignmentId` (required), `text` (optional), `file` (optional)
-- `GET /api/submissions/my?assignmentId=...` (student/admin)
-- `GET /api/submissions/mine` (student/admin)
-- `GET /api/submissions/assignment/:assignmentId` (instructor/admin)
-- `PATCH /api/submissions/:id/grade` (instructor/admin)
-  - body: `{ score: 0-100, feedback }`
+- `POST /api/submissions`
+- `GET /api/submissions/my?assignmentId=...`
+- `GET /api/submissions/mine`
+- `GET /api/submissions/assignment/:assignmentId`
+- `PATCH /api/submissions/:id/grade`
 
 ### Quizzes
 
 - `GET /api/quizzes/course/:courseId`
-- `POST /api/quizzes` / `POST /api/quizzes/create`
-- `POST /api/quizzes/:id/questions` / `POST /api/quizzes/question`
+- `POST /api/quizzes`
+- `POST /api/quizzes/create`
+- `POST /api/quizzes/:id/questions`
+- `POST /api/quizzes/question`
 - `GET /api/quizzes/:id`
 - `POST /api/quizzes/:id/attempt`
 - `GET /api/quizzes/my/attempts`
@@ -213,19 +214,47 @@ Back-compat for the existing demo UI:
 
 ### Notifications
 
-- `GET /api/notifications` (auth)
-- `POST /api/notifications/:id/read` (auth)
+- `GET /api/notifications`
+- `POST /api/notifications/:id/read`
 
-### Admin (admin only)
+### Profile
+
+- `GET /api/profile`
+- `PATCH /api/profile`
+- `POST /api/profile/password`
+
+### Admin
 
 - `GET /api/admin/analytics`
-- `GET /api/admin/users` / `POST /api/admin/users` / `DELETE /api/admin/users/:id`
-- `GET /api/admin/courses` / `DELETE /api/admin/courses/:id`
-- `GET /api/admin/permissions` / `PUT /api/admin/permissions/:key`
+- `GET /api/admin/users`
+- `POST /api/admin/users`
+- `DELETE /api/admin/users/:id`
+- `GET /api/admin/courses`
+- `DELETE /api/admin/courses/:id`
+- `GET /api/admin/permissions`
+- `PUT /api/admin/permissions/:key`
 - `GET /api/admin/logs`
+
+## Authentication Notes
+
+- The login flow sets an HttpOnly cookie named `learnly_token`.
+- The backend also accepts JWTs from the `Authorization` header.
+- `Authorization: <jwt>` and `Authorization: Bearer <jwt>` are both supported.
+
+## Uploads
+
+- Assignment submissions are stored in `uploads/submissions/`
+- Uploaded files are served from `/uploads/...`
+- Submission uploads have a 15 MB limit
+
+## Health Checks
+
+- `GET /health`
+- `GET /health/db`
 
 ## Notes
 
-- For production, set strong `JWT_SECRET`, use HTTPS, restrict CORS, and connect password reset to a real email provider.
-- File uploads are stored in `uploads/submissions/` and served via `GET /uploads/...`.
-- In development, `POST /api/auth/forgot-password` returns a `debugResetUrl` so the reset flow can be tested locally.
+- Use `npm start` rather than running the root `server.js` directly.
+- The frontend includes a few legacy action URLs, and the backend keeps those aliases for compatibility.
+- If the dashboards look empty, confirm the database name in `.env` and rerun `npm run seed`.
+- In production, set a strong `JWT_SECRET`, use HTTPS, and connect password reset to a real email provider.
