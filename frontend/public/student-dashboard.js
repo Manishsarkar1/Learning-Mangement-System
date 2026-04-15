@@ -25,7 +25,7 @@
                         (course) => `
                       <div class="list-item">
                         <strong>${escapeHtml(course.title)}</strong>
-                        <div class="meta">${escapeHtml(course.instructorName)} · ${course.assignmentCount} assignments · ${course.materialCount} materials</div>
+                        <div class="meta">${escapeHtml(course.category || "General")} · ${escapeHtml(course.instructorName)} · ${course.assignmentCount} assignments · ${course.materialCount} materials</div>
                         <div class="progress"><span style="width:${course.progress}%"></span></div>
                         <div class="actions" style="margin-top:12px;">
                           <a class="btn-secondary" href="/course.html?id=${course.id}">Open course</a>
@@ -106,7 +106,10 @@
                         (quiz) => `
                         <div class="list-item">
                           <strong>${escapeHtml(quiz.title)}</strong>
-                          <div class="meta">${escapeHtml(quiz.courseTitle)} · ${quiz.questionCount} questions · Latest score: ${quiz.latestScore ?? "—"}</div>
+                          <div class="meta">${escapeHtml(quiz.courseTitle)} · ${quiz.questionCount} questions${
+                            quiz.timeLimitMinutes ? ` · ${quiz.timeLimitMinutes} min limit` : ""
+                          } · Latest score: ${quiz.latestScore ?? "—"}</div>
+                          <div class="actions" style="margin-top:12px;"><a class="btn-secondary" href="/quiz.html?id=${quiz.id}">Open quiz</a></div>
                         </div>
                       `
                       )
@@ -160,7 +163,7 @@
               (course) => `
             <div class="list-item">
               <strong>${escapeHtml(course.title)}</strong>
-              <div class="meta">${escapeHtml(course.instructorName)} · ${course.studentCount} students</div>
+              <div class="meta">${escapeHtml(course.category || "General")} · ${escapeHtml(course.instructorName)} · ${course.studentCount} students</div>
               <div class="muted" style="margin-top:8px;">${escapeHtml(course.description)}</div>
               <div class="actions" style="margin-top:12px;">
                 <a class="btn-secondary" href="/course.html?id=${course.id}">View</a>

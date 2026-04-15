@@ -20,6 +20,7 @@ function buildLikeTerm(value) {
 async function listCourses(req, res) {
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
   const instructorId = toId(req.query.instructorId);
+  const category = typeof req.query.category === "string" ? req.query.category.trim() : "";
   const page = clamp(req.query.page, 1, 100000, 1);
   const limit = clamp(req.query.limit, 1, 100, 20);
   const usePagination = req.query.format === "page" || req.query.page !== undefined || req.query.limit !== undefined;
@@ -33,6 +34,10 @@ async function listCourses(req, res) {
   if (instructorId) {
     where.push("c.instructor_id = ?");
     params.push(instructorId);
+  }
+  if (category) {
+    where.push("c.category = ?");
+    params.push(category);
   }
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
@@ -53,6 +58,7 @@ async function listCourses(req, res) {
       c.id,
       c.title,
       c.description,
+      c.category,
       c.instructor_id AS instructorId,
       u.name AS instructorName,
       u.email AS instructorEmail,
@@ -74,6 +80,7 @@ async function listCourses(req, res) {
     id: String(row.id),
     title: row.title,
     description: row.description,
+    category: row.category,
     instructorId: String(row.instructorId),
     instructorName: row.instructorName,
     instructorEmail: row.instructorEmail,
@@ -99,13 +106,21 @@ async function listCourses(req, res) {
 async function createCourse(req, res) {
   const title = String(req.body && req.body.title ? req.body.title : "").trim();
   const description = String(req.body && req.body.description ? req.body.description : "").trim();
+  const category = String(req.body && req.body.category ? req.body.category : "General").trim();
   if (!title) return res.status(400).json({ message: "Title is required" });
   if (!description) return res.status(400).json({ message: "Description is required" });
+  if (!category) return res.status(400).json({ message: "Category is required" });
+  if (category.length > 120) return res.status(400).json({ message: "Category is too long" });
 
   const instructorId = toId(req.user.id);
   if (!instructorId) return res.status(400).json({ message: "Invalid user id" });
 
-  const result = await db.exec("INSERT INTO courses (title, description, instructor_id) VALUES (?, ?, ?)", [title, description, instructorId]);
+  const result = await db.exec("INSERT INTO courses (title, description, category, instructor_id) VALUES (?, ?, ?, ?)", [
+    title,
+    description,
+    category,
+    instructorId,
+  ]);
 
   await writeAuditLog({
     actorUserId: instructorId,
@@ -159,6 +174,7 @@ async function myCourses(req, res) {
         c.id,
         c.title,
         c.description,
+        c.category,
         c.instructor_id AS instructorId,
         u.name AS instructorName,
         (SELECT COUNT(*) FROM enrollments e2 WHERE e2.course_id = c.id) AS studentCount,
@@ -193,6 +209,7 @@ async function myCourses(req, res) {
         c.id,
         c.title,
         c.description,
+        c.category,
         c.instructor_id AS instructorId,
         u.name AS instructorName,
         (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS studentCount,
@@ -216,6 +233,7 @@ async function myCourses(req, res) {
       c.id,
       c.title,
       c.description,
+      c.category,
       c.instructor_id AS instructorId,
       u.name AS instructorName,
       (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS studentCount,
@@ -239,6 +257,7 @@ async function getCourse(req, res) {
       c.id,
       c.title,
       c.description,
+      c.category,
       c.instructor_id AS instructorId,
       u.name AS instructorName,
       u.email AS instructorEmail,
@@ -265,6 +284,7 @@ async function getCourse(req, res) {
     id: String(course.id),
     title: course.title,
     description: course.description,
+    category: course.category,
     instructor: { id: String(course.instructorId), name: course.instructorName, email: course.instructorEmail },
     studentCount: Number(course.studentCount) || 0,
     createdAt: course.createdAt,
@@ -340,8 +360,13 @@ async function getCourse(req, res) {
     SELECT
       q.id,
       q.title,
+      q.instructions,
+      q.time_limit_minutes AS timeLimitMinutes,
+      q.is_published AS isPublished,
+      q.published_at AS publishedAt,
       q.created_at AS createdAt,
       (SELECT COUNT(*) FROM quiz_questions qq WHERE qq.quiz_id = q.id) AS questionCount,
+      (SELECT COALESCE(SUM(qq.marks), 0) FROM quiz_questions qq WHERE qq.quiz_id = q.id) AS totalMarks,
       (
         SELECT qa.score
         FROM quiz_attempts qa
@@ -351,6 +376,7 @@ async function getCourse(req, res) {
       ) AS myLatestScore
     FROM quizzes q
     WHERE q.course_id = ?
+      ${isAdmin || isOwner ? "" : "AND q.is_published = 1"}
     ORDER BY q.created_at DESC
   `,
     [userId, courseId]
@@ -391,8 +417,13 @@ async function getCourse(req, res) {
     quizzes: (quizzes || []).map((item) => ({
       id: String(item.id),
       title: item.title,
+      instructions: item.instructions || "",
+      timeLimitMinutes: item.timeLimitMinutes !== null ? Number(item.timeLimitMinutes) : null,
+      isPublished: Boolean(item.isPublished),
+      publishedAt: item.publishedAt,
       createdAt: item.createdAt,
       questionCount: Number(item.questionCount) || 0,
+      totalMarks: Number(item.totalMarks) || 0,
       myLatestScore: item.myLatestScore !== null ? Number(item.myLatestScore) : null,
     })),
     students: students

@@ -85,10 +85,15 @@ async function upsertProfile(userId, profile) {
   );
 }
 
-async function upsertCourse({ title, description, instructorId }) {
+async function upsertCourse({ title, description, category, instructorId }) {
   const rows = await db.query("SELECT id FROM courses WHERE title = ? LIMIT 1", [title]);
   if (rows && rows.length > 0) return rows[0].id;
-  const result = await db.exec("INSERT INTO courses (title, description, instructor_id) VALUES (?, ?, ?)", [title, description, instructorId]);
+  const result = await db.exec("INSERT INTO courses (title, description, category, instructor_id) VALUES (?, ?, ?, ?)", [
+    title,
+    description,
+    category || "General",
+    instructorId,
+  ]);
   return result.insertId;
 }
 
@@ -140,22 +145,25 @@ async function ensureSubmission({ assignmentId, courseId, studentId, text, grade
   return result.insertId;
 }
 
-async function ensureQuiz(courseId, title) {
+async function ensureQuiz(courseId, title, instructions, timeLimitMinutes, isPublished = true) {
   const rows = await db.query("SELECT id FROM quizzes WHERE course_id = ? AND title = ? LIMIT 1", [courseId, title]);
   if (rows && rows.length > 0) return rows[0].id;
-  const result = await db.exec("INSERT INTO quizzes (course_id, title) VALUES (?, ?)", [courseId, title]);
+  const result = await db.exec(
+    "INSERT INTO quizzes (course_id, title, instructions, time_limit_minutes, is_published, published_at) VALUES (?, ?, ?, ?, ?, ?)",
+    [courseId, title, instructions || null, timeLimitMinutes || null, isPublished ? 1 : 0, isPublished ? new Date() : null]
+  );
   return result.insertId;
 }
 
-async function ensureQuestion(quizId, question, options) {
+async function ensureQuestion(quizId, question, options, marks = 1) {
   const rows = await db.query("SELECT id FROM quiz_questions WHERE quiz_id = ? AND question = ? LIMIT 1", [quizId, question]);
   if (rows && rows.length > 0) return rows[0].id;
   const result = await db.exec(
     `
-    INSERT INTO quiz_questions (quiz_id, question, option_a, option_b, option_c, option_d, correct_option)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO quiz_questions (quiz_id, question, option_a, option_b, option_c, option_d, correct_option, marks)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `,
-    [quizId, question, options.a, options.b, options.c, options.d, options.correct]
+    [quizId, question, options.a, options.b, options.c, options.d, options.correct, marks]
   );
   return result.insertId;
 }
@@ -233,16 +241,19 @@ async function run() {
   const mlCourseId = await upsertCourse({
     title: "Machine Learning Fundamentals",
     description: "Core ML concepts, model evaluation, and practical notebook exercises.",
+    category: "Data Science",
     instructorId,
   });
   const reactCourseId = await upsertCourse({
     title: "React & Modern Frontends",
     description: "Components, hooks, state, routing, and deployment workflows.",
+    category: "Web Development",
     instructorId: instructor2Id,
   });
   const pythonCourseId = await upsertCourse({
     title: "Data Storytelling with Python",
     description: "Clean data, explore trends, and present findings with compelling visuals.",
+    category: "Analytics",
     instructorId,
   });
 
@@ -327,8 +338,18 @@ async function run() {
     text: "Submitted draft findings with visualizations.",
   });
 
-  const mlQuizId = await ensureQuiz(mlCourseId, "ML Fundamentals Quiz 1");
-  const reactQuizId = await ensureQuiz(reactCourseId, "React Hooks Deep Dive");
+  const mlQuizId = await ensureQuiz(
+    mlCourseId,
+    "ML Fundamentals Quiz 1",
+    "Answer all questions carefully. Focus on evaluation metrics and model generalization concepts.",
+    15
+  );
+  const reactQuizId = await ensureQuiz(
+    reactCourseId,
+    "React Hooks Deep Dive",
+    "This quiz checks your understanding of core hooks and state management basics.",
+    10
+  );
 
   const mlQuestion1Id = await ensureQuestion(mlQuizId, "Which metric is best for imbalanced classification?", {
     a: "Accuracy",
@@ -336,21 +357,21 @@ async function run() {
     c: "Mean Absolute Error",
     d: "R-squared",
     correct: "B",
-  });
+  }, 5);
   const mlQuestion2Id = await ensureQuestion(mlQuizId, "What does overfitting usually indicate?", {
     a: "Too much training signal",
     b: "Model memorizes training data",
     c: "Dataset has no labels",
     d: "Low variance",
     correct: "B",
-  });
+  }, 5);
   const reactQuestion1Id = await ensureQuestion(reactQuizId, "Which hook handles local component state?", {
     a: "useMemo",
     b: "useReducer",
     c: "useState",
     d: "useRef",
     correct: "C",
-  });
+  }, 10);
 
   await ensureQuizAttempt(
     mlQuizId,

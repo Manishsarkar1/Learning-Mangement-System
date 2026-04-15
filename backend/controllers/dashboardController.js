@@ -152,6 +152,7 @@ async function buildStudentDashboard(userId) {
       c.id,
       c.title,
       c.description,
+      c.category,
       u.name AS instructorName,
       c.created_at AS createdAt,
       (SELECT COUNT(*) FROM course_materials cm WHERE cm.course_id = c.id) AS materialCount,
@@ -186,6 +187,7 @@ async function buildStudentDashboard(userId) {
       id: String(row.id),
       title: row.title,
       description: row.description,
+      category: row.category,
       instructorName: row.instructorName,
       materialCount: Number(row.materialCount) || 0,
       assignmentCount,
@@ -255,6 +257,8 @@ async function buildStudentDashboard(userId) {
     SELECT
       q.id,
       q.title,
+      q.is_published AS isPublished,
+      q.time_limit_minutes AS timeLimitMinutes,
       q.created_at AS createdAt,
       c.title AS courseTitle,
       (SELECT COUNT(*) FROM quiz_questions qq WHERE qq.quiz_id = q.id) AS questionCount,
@@ -268,7 +272,7 @@ async function buildStudentDashboard(userId) {
     FROM quizzes q
     JOIN enrollments e ON e.course_id = q.course_id
     JOIN courses c ON c.id = q.course_id
-    WHERE e.student_id = ?
+    WHERE e.student_id = ? AND q.is_published = 1
     ORDER BY q.created_at DESC
     LIMIT 6
   `,
@@ -314,6 +318,8 @@ async function buildStudentDashboard(userId) {
       id: String(row.id),
       title: row.title,
       courseTitle: row.courseTitle,
+      isPublished: Boolean(row.isPublished),
+      timeLimitMinutes: row.timeLimitMinutes !== null ? Number(row.timeLimitMinutes) : null,
       questionCount: Number(row.questionCount) || 0,
       latestScore: row.latestScore !== null ? Number(row.latestScore) : null,
       createdAt: row.createdAt,
@@ -335,6 +341,7 @@ async function buildInstructorDashboard(userId) {
       c.id,
       c.title,
       c.description,
+      c.category,
       c.created_at AS createdAt,
       (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS studentCount,
       (SELECT COUNT(*) FROM assignments a WHERE a.course_id = c.id) AS assignmentCount,
@@ -439,9 +446,12 @@ async function buildInstructorDashboard(userId) {
     SELECT
       q.id,
       q.title,
+      q.is_published AS isPublished,
+      q.time_limit_minutes AS timeLimitMinutes,
       c.title AS courseTitle,
       q.created_at AS createdAt,
       (SELECT COUNT(*) FROM quiz_questions qq WHERE qq.quiz_id = q.id) AS questionCount,
+      (SELECT COALESCE(SUM(qq.marks), 0) FROM quiz_questions qq WHERE qq.quiz_id = q.id) AS totalMarks,
       (SELECT COUNT(*) FROM quiz_attempts qa WHERE qa.quiz_id = q.id) AS attemptCount
     FROM quizzes q
     JOIN courses c ON c.id = q.course_id
@@ -463,6 +473,7 @@ async function buildInstructorDashboard(userId) {
       id: String(row.id),
       title: row.title,
       description: row.description,
+      category: row.category,
       studentCount: Number(row.studentCount) || 0,
       assignmentCount: Number(row.assignmentCount) || 0,
       announcementCount: Number(row.announcementCount) || 0,
@@ -490,7 +501,10 @@ async function buildInstructorDashboard(userId) {
       id: String(row.id),
       title: row.title,
       courseTitle: row.courseTitle,
+      isPublished: Boolean(row.isPublished),
+      timeLimitMinutes: row.timeLimitMinutes !== null ? Number(row.timeLimitMinutes) : null,
       questionCount: Number(row.questionCount) || 0,
+      totalMarks: Number(row.totalMarks) || 0,
       attemptCount: Number(row.attemptCount) || 0,
       createdAt: row.createdAt,
     })),

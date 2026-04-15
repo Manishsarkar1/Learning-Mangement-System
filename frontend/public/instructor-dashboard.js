@@ -26,7 +26,7 @@
                         (course) => `
                         <div class="list-item">
                           <strong>${escapeHtml(course.title)}</strong>
-                          <div class="meta">${course.studentCount} students · ${course.assignmentCount} assignments · ${course.announcementCount} announcements</div>
+                          <div class="meta">${escapeHtml(course.category || "General")} · ${course.studentCount} students · ${course.assignmentCount} assignments · ${course.announcementCount} announcements</div>
                           <div class="actions" style="margin-top:12px;">
                             <a class="btn-secondary" href="/course.html?id=${course.id}">Manage course</a>
                             <span class="pill warn">${course.pendingReviews} pending reviews</span>
@@ -46,6 +46,7 @@
               <form id="create-course-form" class="stack">
                 <div class="field"><label>Title</label><input name="title" required /></div>
                 <div class="field"><label>Description</label><textarea name="description" required></textarea></div>
+                <div class="field"><label>Category</label><input name="category" placeholder="Web Development, Design, Analytics..." required /></div>
                 <button class="btn" type="submit">Create course</button>
                 ${statusMarkup("create-course-status")}
               </form>
@@ -79,23 +80,15 @@
 
           <div class="card">
             <div class="card-header"><h2>Create quiz</h2></div>
-            <form id="quiz-form" class="stack">
-              <div class="field"><label>Course</label><select name="courseId" required>${options}</select></div>
-              <div class="field"><label>Quiz title</label><input name="title" required /></div>
-              <div class="field"><label>Question</label><textarea name="question" required></textarea></div>
-              <div class="row">
-                <div class="field"><label>Option A</label><input name="a" required /></div>
-                <div class="field"><label>Option B</label><input name="b" required /></div>
-              </div>
-              <div class="row">
-                <div class="field"><label>Option C</label><input name="c" required /></div>
-                <div class="field"><label>Option D</label><input name="d" required /></div>
-              </div>
-              <div class="field"><label>Correct option</label><select name="correct"><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
-              <button class="btn" type="submit">Create quiz with first question</button>
-              ${statusMarkup("quiz-status")}
-            </form>
-          </div>
+              <form id="quiz-form" class="stack">
+                <div class="field"><label>Course</label><select name="courseId" required>${options}</select></div>
+                <div class="field"><label>Quiz title</label><input name="title" required /></div>
+                <div class="field"><label>Instructions</label><textarea name="instructions" placeholder="Explain the quiz goals or rules"></textarea></div>
+                <div class="field"><label>Time limit (minutes)</label><input name="timeLimitMinutes" type="number" min="1" placeholder="Optional" /></div>
+                <button class="btn" type="submit">Create draft quiz</button>
+                ${statusMarkup("quiz-status")}
+              </form>
+            </div>
         </section>
 
         <section class="section-anchor grid two" id="grading" style="margin-top:20px;">
@@ -179,7 +172,8 @@
                         (quiz) => `
                         <div class="list-item">
                           <strong>${escapeHtml(quiz.title)}</strong>
-                          <div class="meta">${escapeHtml(quiz.courseTitle)} · ${quiz.questionCount} questions · ${quiz.attemptCount} attempts</div>
+                          <div class="meta">${escapeHtml(quiz.courseTitle)} · ${quiz.questionCount} questions · ${quiz.totalMarks} marks · ${quiz.attemptCount} attempts · ${quiz.isPublished ? "Published" : "Draft"}</div>
+                          <div class="actions" style="margin-top:12px;"><a class="btn-secondary" href="/quiz.html?id=${quiz.id}">Manage quiz</a></div>
                         </div>
                       `
                       )
@@ -222,7 +216,7 @@
         try {
           await window.Learnly.api("/api/courses", {
             method: "POST",
-            json: { title: form.title.value.trim(), description: form.description.value.trim() },
+            json: { title: form.title.value.trim(), description: form.description.value.trim(), category: form.category.value.trim() },
           });
           setStatus("create-course-status", "Course created. Reloading…", "ok");
           setTimeout(() => window.location.reload(), 500);
@@ -275,21 +269,18 @@
         try {
           const created = await window.Learnly.api("/api/quizzes", {
             method: "POST",
-            json: { courseId: form.courseId.value, title: form.title.value.trim() },
-          });
-          await window.Learnly.api(`/api/quizzes/${created.quiz.id}/questions`, {
-            method: "POST",
             json: {
-              question: form.question.value.trim(),
-              a: form.a.value.trim(),
-              b: form.b.value.trim(),
-              c: form.c.value.trim(),
-              d: form.d.value.trim(),
-              correct: form.correct.value,
+              courseId: form.courseId.value,
+              title: form.title.value.trim(),
+              instructions: form.instructions.value.trim(),
+              timeLimitMinutes: form.timeLimitMinutes.value.trim() || null,
+              isPublished: false,
             },
           });
-          setStatus("quiz-status", "Quiz created. Add more questions from the course page if needed. Reloading…", "ok");
-          setTimeout(() => window.location.reload(), 700);
+          setStatus("quiz-status", "Quiz draft created. Opening builder...", "ok");
+          setTimeout(() => {
+            window.location.href = `/quiz.html?id=${created.quiz.id}`;
+          }, 500);
         } catch (error) {
           setStatus("quiz-status", error.message || "Unable to create quiz", "error");
         }

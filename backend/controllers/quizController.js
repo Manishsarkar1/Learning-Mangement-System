@@ -2,6 +2,19 @@ const db = require("../config/db");
 const { toId } = require("./courseController");
 const { writeAuditLog } = require("../services/auditLog");
 
+function parseMarks(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) return null;
+  return Math.floor(num);
+}
+
+function parseTimeLimit(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) return null;
+  return Math.floor(num);
+}
+
 async function loadQuiz(quizId) {
   const rows = await db.query(
     `
@@ -9,6 +22,10 @@ async function loadQuiz(quizId) {
       q.id,
       q.course_id AS courseId,
       q.title,
+      q.instructions,
+      q.time_limit_minutes AS timeLimitMinutes,
+      q.is_published AS isPublished,
+      q.published_at AS publishedAt,
       q.created_at AS createdAt,
       c.title AS courseTitle,
       c.instructor_id AS instructorId
@@ -37,12 +54,26 @@ async function ensureQuizAccess(quizId, user) {
     const enrolled = await db.query("SELECT 1 AS ok FROM enrollments WHERE course_id = ? AND student_id = ? LIMIT 1", [quiz.courseId, userId]);
     isEnrolled = enrolled && enrolled.length > 0;
   }
-  return { quiz, isAdmin, isOwner, isEnrolled };
+  const canViewDraft = isAdmin || isOwner;
+  return {
+    quiz: {
+      ...quiz,
+      isPublished: Boolean(quiz.isPublished),
+      timeLimitMinutes: quiz.timeLimitMinutes !== null ? Number(quiz.timeLimitMinutes) : null,
+    },
+    isAdmin,
+    isOwner,
+    isEnrolled,
+    canViewDraft,
+  };
 }
 
 async function createQuiz(req, res) {
   const courseId = toId(req.body && (req.body.courseId || req.body.course_id));
   const title = String(req.body && req.body.title ? req.body.title : "").trim();
+  const instructions = String(req.body && req.body.instructions ? req.body.instructions : "").trim();
+  const timeLimitMinutes = parseTimeLimit(req.body && (req.body.timeLimitMinutes || req.body.time_limit_minutes));
+  const isPublished = Boolean(req.body && req.body.isPublished);
 
   if (!courseId) return res.status(400).json({ message: "Invalid courseId" });
   if (!title) return res.status(400).json({ message: "Title is required" });
@@ -56,7 +87,13 @@ async function createQuiz(req, res) {
   const isOwner = req.user.role === "instructor" && Number(course.instructorId) === userId;
   if (!isAdmin && !isOwner) return res.status(403).json({ message: "Forbidden" });
 
-  const result = await db.exec("INSERT INTO quizzes (course_id, title) VALUES (?, ?)", [courseId, title]);
+  const result = await db.exec(
+    `
+    INSERT INTO quizzes (course_id, title, instructions, time_limit_minutes, is_published, published_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `,
+    [courseId, title, instructions || null, timeLimitMinutes, isPublished ? 1 : 0, isPublished ? new Date() : null]
+  );
 
   await writeAuditLog({
     actorUserId: userId,
@@ -64,9 +101,56 @@ async function createQuiz(req, res) {
     entityType: "quiz",
     entityId: result.insertId,
     message: `Quiz created in ${course.title}: ${title}`,
+    meta: { isPublished, timeLimitMinutes },
   });
 
-  return res.status(201).json({ message: "Quiz created", quiz: { id: String(result.insertId) } });
+  return res.status(201).json({
+    message: isPublished ? "Quiz created and published" : "Quiz draft created",
+    quiz: { id: String(result.insertId) },
+  });
+}
+
+async function updateQuiz(req, res) {
+  const quizId = toId(req.params.id);
+  if (!quizId) return res.status(400).json({ message: "Invalid quizId" });
+
+  const title = String(req.body && req.body.title ? req.body.title : "").trim();
+  const instructions = String(req.body && req.body.instructions ? req.body.instructions : "").trim();
+  const timeLimitMinutes = parseTimeLimit(req.body && (req.body.timeLimitMinutes || req.body.time_limit_minutes));
+  const isPublished = req.body && req.body.isPublished !== undefined ? Boolean(req.body.isPublished) : undefined;
+
+  const { quiz, isAdmin, isOwner } = await ensureQuizAccess(quizId, req.user);
+  if (!isAdmin && !isOwner) return res.status(403).json({ message: "Forbidden" });
+  if (!title) return res.status(400).json({ message: "Title is required" });
+
+  const questions = await db.query("SELECT COUNT(*) AS c FROM quiz_questions WHERE quiz_id = ?", [quizId]);
+  const questionCount = Number(questions && questions[0] && questions[0].c) || 0;
+  if (isPublished === true && questionCount === 0) {
+    return res.status(400).json({ message: "Add at least one question before publishing" });
+  }
+
+  const nextPublished = isPublished === undefined ? quiz.isPublished : isPublished;
+  const publishedAt = nextPublished ? quiz.publishedAt || new Date() : null;
+
+  await db.exec(
+    `
+    UPDATE quizzes
+    SET title = ?, instructions = ?, time_limit_minutes = ?, is_published = ?, published_at = ?
+    WHERE id = ?
+  `,
+    [title, instructions || null, timeLimitMinutes, nextPublished ? 1 : 0, publishedAt, quizId]
+  );
+
+  await writeAuditLog({
+    actorUserId: req.user.id,
+    action: nextPublished ? "quiz.published" : "quiz.updated",
+    entityType: "quiz",
+    entityId: quizId,
+    message: nextPublished ? `Quiz published: ${title}` : `Quiz updated: ${title}`,
+    meta: { timeLimitMinutes, questionCount },
+  });
+
+  return res.json({ message: nextPublished ? "Quiz published" : "Quiz updated" });
 }
 
 async function addQuestion(req, res) {
@@ -79,19 +163,21 @@ async function addQuestion(req, res) {
   const c = String(req.body && (req.body.c || req.body.option_c) ? req.body.c || req.body.option_c : "").trim();
   const d = String(req.body && (req.body.d || req.body.option_d) ? req.body.d || req.body.option_d : "").trim();
   const correct = String(req.body && (req.body.correct || req.body.correct_option) ? req.body.correct || req.body.correct_option : "").trim().toUpperCase();
+  const marks = parseMarks(req.body && req.body.marks);
 
   if (!question || !a || !b || !c || !d) return res.status(400).json({ message: "Question and all options are required" });
   if (!["A", "B", "C", "D"].includes(correct)) return res.status(400).json({ message: "Correct option must be A, B, C, or D" });
+  if (!marks) return res.status(400).json({ message: "Marks must be greater than 0" });
 
   const { quiz, isAdmin, isOwner } = await ensureQuizAccess(quizId, req.user);
   if (!isAdmin && !isOwner) return res.status(403).json({ message: "Forbidden" });
 
   const result = await db.exec(
     `
-    INSERT INTO quiz_questions (quiz_id, question, option_a, option_b, option_c, option_d, correct_option)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO quiz_questions (quiz_id, question, option_a, option_b, option_c, option_d, correct_option, marks)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `,
-    [quizId, question, a, b, c, d, correct]
+    [quizId, question, a, b, c, d, correct, marks]
   );
 
   await writeAuditLog({
@@ -100,6 +186,7 @@ async function addQuestion(req, res) {
     entityType: "quiz_question",
     entityId: result.insertId,
     message: `Question added to quiz ${quiz.title}`,
+    meta: { marks },
   });
 
   return res.status(201).json({ message: "Question added", question: { id: String(result.insertId) } });
@@ -127,8 +214,13 @@ async function listByCourse(req, res) {
     SELECT
       q.id,
       q.title,
+      q.instructions,
+      q.time_limit_minutes AS timeLimitMinutes,
+      q.is_published AS isPublished,
+      q.published_at AS publishedAt,
       q.created_at AS createdAt,
       (SELECT COUNT(*) FROM quiz_questions qq WHERE qq.quiz_id = q.id) AS questionCount,
+      (SELECT COALESCE(SUM(qq.marks), 0) FROM quiz_questions qq WHERE qq.quiz_id = q.id) AS totalMarks,
       (
         SELECT qa.score
         FROM quiz_attempts qa
@@ -138,6 +230,7 @@ async function listByCourse(req, res) {
       ) AS myLatestScore
     FROM quizzes q
     WHERE q.course_id = ?
+      ${isAdmin || isOwner ? "" : "AND q.is_published = 1"}
     ORDER BY q.created_at DESC
   `,
     [userId, courseId]
@@ -147,8 +240,13 @@ async function listByCourse(req, res) {
     (rows || []).map((row) => ({
       id: String(row.id),
       title: row.title,
+      instructions: row.instructions || "",
+      timeLimitMinutes: row.timeLimitMinutes !== null ? Number(row.timeLimitMinutes) : null,
+      isPublished: Boolean(row.isPublished),
+      publishedAt: row.publishedAt,
       createdAt: row.createdAt,
       questionCount: Number(row.questionCount) || 0,
+      totalMarks: Number(row.totalMarks) || 0,
       myLatestScore: row.myLatestScore !== null ? Number(row.myLatestScore) : null,
     }))
   );
@@ -158,8 +256,9 @@ async function getQuiz(req, res) {
   const quizId = toId(req.params.id);
   if (!quizId) return res.status(400).json({ message: "Invalid quiz id" });
 
-  const { quiz, isAdmin, isOwner, isEnrolled } = await ensureQuizAccess(quizId, req.user);
+  const { quiz, isAdmin, isOwner, isEnrolled, canViewDraft } = await ensureQuizAccess(quizId, req.user);
   if (!isAdmin && !isOwner && !isEnrolled) return res.status(403).json({ message: "Forbidden" });
+  if (!quiz.isPublished && !canViewDraft) return res.status(403).json({ message: "Quiz is not published yet" });
 
   const rows = await db.query(
     `
@@ -170,7 +269,8 @@ async function getQuiz(req, res) {
       option_b AS b,
       option_c AS c,
       option_d AS d,
-      correct_option AS correct
+      correct_option AS correct,
+      marks
     FROM quiz_questions
     WHERE quiz_id = ?
     ORDER BY created_at ASC
@@ -178,21 +278,29 @@ async function getQuiz(req, res) {
     [quizId]
   );
 
+  const questions = (rows || []).map((row) => ({
+    id: String(row.id),
+    question: row.question,
+    option_a: row.a,
+    option_b: row.b,
+    option_c: row.c,
+    option_d: row.d,
+    marks: Number(row.marks) || 1,
+    correct_option: isAdmin || isOwner ? row.correct : undefined,
+  }));
+
   return res.json({
     id: String(quiz.id),
     title: quiz.title,
+    instructions: quiz.instructions || "",
+    timeLimitMinutes: quiz.timeLimitMinutes,
+    isPublished: quiz.isPublished,
+    publishedAt: quiz.publishedAt,
     courseId: String(quiz.courseId),
     courseTitle: quiz.courseTitle,
     createdAt: quiz.createdAt,
-    questions: (rows || []).map((row) => ({
-      id: String(row.id),
-      question: row.question,
-      option_a: row.a,
-      option_b: row.b,
-      option_c: row.c,
-      option_d: row.d,
-      correct_option: isAdmin || isOwner ? row.correct : undefined,
-    })),
+    totalMarks: questions.reduce((sum, question) => sum + question.marks, 0),
+    questions,
   });
 }
 
@@ -201,6 +309,7 @@ async function submitAttempt(req, res) {
   if (!quizId) return res.status(400).json({ message: "Invalid quiz id" });
 
   const { quiz, isAdmin, isEnrolled } = await ensureQuizAccess(quizId, req.user);
+  if (!quiz.isPublished && !isAdmin) return res.status(403).json({ message: "Quiz is not published yet" });
   if (!isAdmin && !isEnrolled) return res.status(403).json({ message: "Only enrolled students can attempt quizzes" });
 
   const answers = req.body && typeof req.body.answers === "object" && req.body.answers ? req.body.answers : null;
@@ -208,7 +317,7 @@ async function submitAttempt(req, res) {
 
   const questions = await db.query(
     `
-    SELECT id, correct_option AS correct
+    SELECT id, correct_option AS correct, marks
     FROM quiz_questions
     WHERE quiz_id = ?
     ORDER BY created_at ASC
@@ -217,20 +326,24 @@ async function submitAttempt(req, res) {
   );
   if (!questions || questions.length === 0) return res.status(400).json({ message: "Quiz has no questions yet" });
 
-  let score = 0;
+  let earnedMarks = 0;
+  let answeredCount = 0;
+  let totalMarks = 0;
   for (const question of questions) {
+    const marks = Number(question.marks) || 1;
+    totalMarks += marks;
     const answer = String(answers[String(question.id)] || answers[question.id] || "").trim().toUpperCase();
-    if (answer && answer === question.correct) score += 1;
+    if (answer) answeredCount += 1;
+    if (answer && answer === question.correct) earnedMarks += marks;
   }
 
-  const totalQuestions = questions.length;
-  const percent = Math.round((score / totalQuestions) * 100);
+  const percent = totalMarks > 0 ? Math.round((earnedMarks / totalMarks) * 100) : 0;
   const result = await db.exec(
     `
     INSERT INTO quiz_attempts (quiz_id, student_id, answers, score, total_questions, submitted_at)
     VALUES (?, ?, ?, ?, ?, NOW(3))
   `,
-    [quizId, req.user.id, JSON.stringify(answers), percent, totalQuestions]
+    [quizId, req.user.id, JSON.stringify(answers), percent, questions.length]
   );
 
   await writeAuditLog({
@@ -239,7 +352,7 @@ async function submitAttempt(req, res) {
     entityType: "quiz_attempt",
     entityId: result.insertId,
     message: `Quiz attempted: ${quiz.title}`,
-    meta: { quizId: String(quizId), score: percent, totalQuestions },
+    meta: { quizId: String(quizId), score: percent, earnedMarks, totalMarks, answeredCount },
   });
 
   return res.status(201).json({
@@ -248,7 +361,10 @@ async function submitAttempt(req, res) {
       id: String(result.insertId),
       quizId: String(quizId),
       score: percent,
-      totalQuestions,
+      earnedMarks,
+      totalMarks,
+      totalQuestions: questions.length,
+      answeredCount,
     },
   });
 }
@@ -326,4 +442,13 @@ async function listAttemptsByQuiz(req, res) {
   );
 }
 
-module.exports = { createQuiz, addQuestion, listByCourse, getQuiz, submitAttempt, listMyAttempts, listAttemptsByQuiz };
+module.exports = {
+  createQuiz,
+  updateQuiz,
+  addQuestion,
+  listByCourse,
+  getQuiz,
+  submitAttempt,
+  listMyAttempts,
+  listAttemptsByQuiz,
+};

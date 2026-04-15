@@ -79,12 +79,15 @@
     return `
       <div class="list-item">
         <strong>${escapeHtml(quiz.title)}</strong>
-        <div class="meta">${quiz.questionCount} questions${quiz.myLatestScore !== null ? ` · Latest score: ${quiz.myLatestScore}` : ""}</div>
-        <div class="actions" style="margin-top:12px;">
-          <button class="btn-secondary" type="button" data-open-quiz="${quiz.id}">${role === "student" ? "Take quiz" : "View quiz"}</button>
-          ${role !== "student" ? `<button class="btn-secondary" type="button" data-open-attempts="${quiz.id}">View attempts</button>` : ""}
+        <div class="meta">
+          ${quiz.questionCount} questions · ${quiz.totalMarks} total marks${
+            quiz.timeLimitMinutes ? ` · ${quiz.timeLimitMinutes} min limit` : ""
+          }${quiz.myLatestScore !== null ? ` · Latest score: ${quiz.myLatestScore}` : ""}${role !== "student" ? ` · ${quiz.isPublished ? "Published" : "Draft"}` : ""}
         </div>
-        <div id="quiz-panel-${quiz.id}" class="stack" style="margin-top:12px;"></div>
+        ${quiz.instructions ? `<div class="muted" style="margin-top:8px;">${escapeHtml(quiz.instructions)}</div>` : ""}
+        <div class="actions" style="margin-top:12px;">
+          <a class="btn-secondary" href="/quiz.html?id=${quiz.id}">${role === "student" ? "Start quiz" : "Manage quiz"}</a>
+        </div>
       </div>
     `;
   }
@@ -94,7 +97,7 @@
     const canManage = me.user.role === "instructor" || me.user.role === "admin";
 
     return `
-      ${topBar(course.title, `${course.instructor.name} · ${course.studentCount} students`)}
+      ${topBar(course.title, `${course.instructor.name} · ${course.category} · ${course.studentCount} students`)}
       <div class="page">
         <div class="grid cards">
           <div class="card"><div class="kicker">Materials</div><div class="stat-value">${course.materials.length}</div></div>

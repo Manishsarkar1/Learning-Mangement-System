@@ -2,6 +2,7 @@ const express = require("express");
 
 const {
   createQuiz,
+  updateQuiz,
   addQuestion,
   listByCourse,
   getQuiz,
@@ -21,6 +22,9 @@ router.get("/my/attempts", requireAuth, requireRole(["student", "admin"]), requi
 );
 router.post("/", requireAuth, requireRole(["instructor", "admin"]), requirePermission("create_quizzes"), (req, res, next) =>
   Promise.resolve(createQuiz(req, res)).catch(next)
+);
+router.patch("/:id", requireAuth, requireRole(["instructor", "admin"]), requirePermission("create_quizzes"), (req, res, next) =>
+  Promise.resolve(updateQuiz(req, res)).catch(next)
 );
 router.post("/create", requireAuth, requireRole(["instructor", "admin"]), requirePermission("create_quizzes"), (req, res, next) =>
   Promise.resolve(createQuiz(req, res)).catch(next)
