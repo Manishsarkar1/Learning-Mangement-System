@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const { normalizeRole } = require("../utils/roles");
 
 const DEFAULT_PERMISSIONS = [
   { key: "view_courses", label: "View courses", student: true, instructor: true, admin: true },
@@ -92,9 +93,10 @@ async function updatePermission(key, payload) {
 async function roleHasPermission(role, key) {
   const permission = await getPermission(key);
   if (!permission) return false;
-  if (role === "student") return permission.student;
-  if (role === "instructor") return permission.instructor;
-  if (role === "admin") return permission.admin;
+  const normalizedRole = normalizeRole(role);
+  if (normalizedRole === "student") return permission.student;
+  if (normalizedRole === "instructor") return permission.instructor;
+  if (normalizedRole === "admin") return permission.admin;
   return false;
 }
 

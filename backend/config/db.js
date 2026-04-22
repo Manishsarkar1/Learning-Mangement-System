@@ -37,7 +37,77 @@ async function ensureColumn(database, tableName, columnName, ddl, postSql) {
   if (postSql) await pool.query(postSql);
 }
 
+async function ensureDiscussionTables(database) {
+  const hasUsers = await hasTable(database, "users");
+  const hasCourses = await hasTable(database, "courses");
+  if (!hasUsers || !hasCourses) return;
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS discussion_threads (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      course_id BIGINT UNSIGNED NOT NULL,
+      author_id BIGINT UNSIGNED NOT NULL,
+      title VARCHAR(200) NOT NULL,
+      body TEXT NOT NULL,
+      created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+      updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+      PRIMARY KEY (id),
+      KEY idx_discussion_threads_course (course_id),
+      KEY idx_discussion_threads_author (author_id),
+      KEY idx_discussion_threads_updated (updated_at),
+      CONSTRAINT fk_discussion_threads_course FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE ON UPDATE CASCADE,
+      CONSTRAINT fk_discussion_threads_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS discussion_replies (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      thread_id BIGINT UNSIGNED NOT NULL,
+      author_id BIGINT UNSIGNED NOT NULL,
+      body TEXT NOT NULL,
+      created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+      updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+      PRIMARY KEY (id),
+      KEY idx_discussion_replies_thread (thread_id),
+      KEY idx_discussion_replies_author (author_id),
+      KEY idx_discussion_replies_created (created_at),
+      CONSTRAINT fk_discussion_replies_thread FOREIGN KEY (thread_id) REFERENCES discussion_threads(id) ON DELETE CASCADE ON UPDATE CASCADE,
+      CONSTRAINT fk_discussion_replies_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB
+  `);
+}
+
+async function ensureLessonProgressTable(database) {
+  const hasUsers = await hasTable(database, "users");
+  const hasCourses = await hasTable(database, "courses");
+  const hasMaterials = await hasTable(database, "course_materials");
+  if (!hasUsers || !hasCourses || !hasMaterials) return;
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS lesson_progress (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      course_id BIGINT UNSIGNED NOT NULL,
+      material_id BIGINT UNSIGNED NOT NULL,
+      student_id BIGINT UNSIGNED NOT NULL,
+      completed_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+      created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+      updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_lesson_progress_material_student (material_id, student_id),
+      KEY idx_lesson_progress_course (course_id),
+      KEY idx_lesson_progress_student (student_id),
+      KEY idx_lesson_progress_completed (completed_at),
+      CONSTRAINT fk_lesson_progress_course FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE ON UPDATE CASCADE,
+      CONSTRAINT fk_lesson_progress_material FOREIGN KEY (material_id) REFERENCES course_materials(id) ON DELETE CASCADE ON UPDATE CASCADE,
+      CONSTRAINT fk_lesson_progress_student FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB
+  `);
+}
+
 async function runDbUpgrades(database) {
+  await ensureDiscussionTables(database);
+  await ensureLessonProgressTable(database);
   await ensureColumn(database, "courses", "category", "category VARCHAR(120) NOT NULL DEFAULT 'General' AFTER description");
   await ensureColumn(database, "quizzes", "instructions", "instructions TEXT NULL AFTER title");
   await ensureColumn(database, "quizzes", "time_limit_minutes", "time_limit_minutes INT UNSIGNED NULL AFTER instructions");

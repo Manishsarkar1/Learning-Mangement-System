@@ -1,20 +1,35 @@
 (function () {
   const app = document.getElementById("app");
   const { escapeHtml, statusMarkup, setStatus, chartMarkup, statCards, renderLayout } = window.LearnlyDash;
+  const section = {
+    "/student-dashboard.html": "overview",
+    "/student-courses.html": "courses",
+    "/student-quizzes.html": "quizzes",
+    "/student-announcements.html": "announcements",
+  }[window.location.pathname] || "overview";
 
-  function content(data) {
+  const pages = [
+    { id: "overview", label: "Overview", href: "/student-dashboard.html", title: "Student overview", description: "Track your coursework, progress, and results." },
+    { id: "courses", label: "Courses", href: "/student-courses.html", title: "Your courses", description: "See enrolled courses, deadlines, and course search." },
+    { id: "quizzes", label: "Quizzes & grades", href: "/student-quizzes.html", title: "Quizzes and grades", description: "Review quiz access and recent grading updates." },
+    { id: "announcements", label: "Announcements", href: "/student-announcements.html", title: "Announcements", description: "Read course updates and weekly activity." },
+  ];
+
+  function renderOverview(data) {
     const stats = [
       { label: "Enrolled Courses", value: data.stats.enrolledCourses, help: "Courses currently in progress" },
       { label: "Completed Assignments", value: data.stats.completedAssignments, help: "Submitted work so far" },
-      { label: "Average Score", value: data.stats.averageScore ?? "—", help: "Across graded submissions" },
+      { label: "Average Score", value: data.stats.averageScore ?? "-", help: "Across graded submissions" },
       { label: "Pending Assignments", value: data.stats.pendingAssignments, help: "Still waiting for submission" },
     ];
 
+    return `<div class="page">${statCards(stats)}</div>`;
+  }
+
+  function renderCourses(data) {
     return `
       <div class="page">
-        <section class="section-anchor" id="overview">${statCards(stats)}</section>
-
-        <section class="section-anchor grid two" id="courses" style="margin-top:20px;">
+        <section class="grid two">
           <div class="card">
             <div class="card-header"><div><h2>Your courses</h2><div class="muted">Open any course to view materials, quizzes, and assignment submission forms.</div></div></div>
             <div class="list">
@@ -23,16 +38,16 @@
                   ? data.courses
                       .map(
                         (course) => `
-                      <div class="list-item">
-                        <strong>${escapeHtml(course.title)}</strong>
-                        <div class="meta">${escapeHtml(course.category || "General")} · ${escapeHtml(course.instructorName)} · ${course.assignmentCount} assignments · ${course.materialCount} materials</div>
-                        <div class="progress"><span style="width:${course.progress}%"></span></div>
-                        <div class="actions" style="margin-top:12px;">
-                          <a class="btn-secondary" href="/course.html?id=${course.id}">Open course</a>
-                          <span class="pill success">${course.averageScore ?? "—"} avg</span>
+                        <div class="list-item">
+                          <strong>${escapeHtml(course.title)}</strong>
+                          <div class="meta">${escapeHtml(course.category || "General")} | ${escapeHtml(course.instructorName)} | ${course.assignmentCount} assignments | ${course.materialCount} materials</div>
+                          <div class="progress"><span style="width:${course.progress}%"></span></div>
+                          <div class="actions" style="margin-top:12px;">
+                            <a class="btn-secondary" href="/course.html?id=${course.id}">Open course</a>
+                            <span class="pill success">${course.averageScore ?? "-"} avg</span>
+                          </div>
                         </div>
-                      </div>
-                    `
+                      `
                       )
                       .join("")
                   : `<div class="empty">No enrolled courses yet.</div>`
@@ -49,12 +64,12 @@
                     ? data.upcoming
                         .map(
                           (item) => `
-                        <div class="list-item">
-                          <strong>${escapeHtml(item.title)}</strong>
-                          <div class="meta">${escapeHtml(item.courseTitle)} · Due ${escapeHtml(item.dueLabel)}</div>
-                          <div class="actions" style="margin-top:12px;"><a class="btn-secondary" href="/course.html?id=${item.courseId}">Open course</a></div>
-                        </div>
-                      `
+                          <div class="list-item">
+                            <strong>${escapeHtml(item.title)}</strong>
+                            <div class="meta">${escapeHtml(item.courseTitle)} | Due ${escapeHtml(item.dueLabel)}</div>
+                            <div class="actions" style="margin-top:12px;"><a class="btn-secondary" href="/course.html?id=${item.courseId}">Open course</a></div>
+                          </div>
+                        `
                         )
                         .join("")
                     : `<div class="empty">No pending assignments right now.</div>`
@@ -73,8 +88,14 @@
             </div>
           </div>
         </section>
+      </div>
+    `;
+  }
 
-        <section class="section-anchor grid two" id="quizzes" style="margin-top:20px;">
+  function renderQuizzes(data) {
+    return `
+      <div class="page">
+        <section class="grid two">
           <div class="card">
             <div class="card-header"><h2>Recent grades</h2></div>
             <div class="list">
@@ -83,12 +104,12 @@
                   ? data.recentGrades
                       .map(
                         (grade) => `
-                        <div class="list-item">
-                          <strong>${escapeHtml(grade.assignmentTitle)}</strong>
-                          <div class="meta">${escapeHtml(grade.courseTitle)} · ${escapeHtml(grade.gradeScore)}/100</div>
-                          <div class="muted" style="margin-top:8px;">${escapeHtml(grade.feedback || "No feedback yet.")}</div>
-                        </div>
-                      `
+                          <div class="list-item">
+                            <strong>${escapeHtml(grade.assignmentTitle)}</strong>
+                            <div class="meta">${escapeHtml(grade.courseTitle)} | ${escapeHtml(grade.gradeScore)}/100</div>
+                            <div class="muted" style="margin-top:8px;">${escapeHtml(grade.feedback || "No feedback yet.")}</div>
+                          </div>
+                        `
                       )
                       .join("")
                   : `<div class="empty">Grades will appear here as instructors review your work.</div>`
@@ -104,14 +125,14 @@
                   ? data.quizzes
                       .map(
                         (quiz) => `
-                        <div class="list-item">
-                          <strong>${escapeHtml(quiz.title)}</strong>
-                          <div class="meta">${escapeHtml(quiz.courseTitle)} · ${quiz.questionCount} questions${
-                            quiz.timeLimitMinutes ? ` · ${quiz.timeLimitMinutes} min limit` : ""
-                          } · Latest score: ${quiz.latestScore ?? "—"}</div>
-                          <div class="actions" style="margin-top:12px;"><a class="btn-secondary" href="/quiz.html?id=${quiz.id}">Open quiz</a></div>
-                        </div>
-                      `
+                          <div class="list-item">
+                            <strong>${escapeHtml(quiz.title)}</strong>
+                            <div class="meta">${escapeHtml(quiz.courseTitle)} | ${quiz.questionCount} questions${
+                              quiz.timeLimitMinutes ? ` | ${quiz.timeLimitMinutes} min limit` : ""
+                            } | Latest score: ${quiz.latestScore ?? "-"}</div>
+                            <div class="actions" style="margin-top:12px;"><a class="btn-secondary" href="/quiz.html?id=${quiz.id}">Open quiz</a></div>
+                          </div>
+                        `
                       )
                       .join("")
                   : `<div class="empty">No quizzes available yet.</div>`
@@ -119,8 +140,14 @@
             </div>
           </div>
         </section>
+      </div>
+    `;
+  }
 
-        <section class="section-anchor grid two" id="announcements" style="margin-top:20px;">
+  function renderAnnouncements(data) {
+    return `
+      <div class="page">
+        <section class="grid two">
           <div class="card">
             <div class="card-header"><h2>Announcements</h2></div>
             <div class="list">
@@ -129,12 +156,12 @@
                   ? data.announcements
                       .map(
                         (item) => `
-                        <div class="list-item">
-                          <strong>${escapeHtml(item.title)}</strong>
-                          <div class="meta">${escapeHtml(item.courseTitle || "General")} · ${escapeHtml(item.authorName)}</div>
-                          <div class="muted" style="margin-top:8px;">${escapeHtml(item.body)}</div>
-                        </div>
-                      `
+                          <div class="list-item">
+                            <strong>${escapeHtml(item.title)}</strong>
+                            <div class="meta">${escapeHtml(item.courseTitle || "General")} | ${escapeHtml(item.authorName)}</div>
+                            <div class="muted" style="margin-top:8px;">${escapeHtml(item.body)}</div>
+                          </div>
+                        `
                       )
                       .join("")
                   : `<div class="empty">No announcements yet.</div>`
@@ -153,6 +180,7 @@
 
   async function loadSearch(query) {
     const resultsBox = document.getElementById("student-course-results");
+    if (!resultsBox) return;
     resultsBox.innerHTML = `<div class="muted">Loading...</div>`;
     try {
       const res = await window.Learnly.api(`/api/courses?format=page&q=${encodeURIComponent(query || "")}&page=1&limit=6`);
@@ -161,16 +189,16 @@
         ? items
             .map(
               (course) => `
-            <div class="list-item">
-              <strong>${escapeHtml(course.title)}</strong>
-              <div class="meta">${escapeHtml(course.category || "General")} · ${escapeHtml(course.instructorName)} · ${course.studentCount} students</div>
-              <div class="muted" style="margin-top:8px;">${escapeHtml(course.description)}</div>
-              <div class="actions" style="margin-top:12px;">
-                <a class="btn-secondary" href="/course.html?id=${course.id}">View</a>
-                <button class="btn" type="button" data-enroll-course="${course.id}">Enroll</button>
-              </div>
-            </div>
-          `
+                <div class="list-item">
+                  <strong>${escapeHtml(course.title)}</strong>
+                  <div class="meta">${escapeHtml(course.category || "General")} | ${escapeHtml(course.instructorName)} | ${course.studentCount} students</div>
+                  <div class="muted" style="margin-top:8px;">${escapeHtml(course.description)}</div>
+                  <div class="actions" style="margin-top:12px;">
+                    <a class="btn-secondary" href="/course.html?id=${course.id}">View</a>
+                    <button class="btn" type="button" data-enroll-course="${course.id}">Enroll</button>
+                  </div>
+                </div>
+              `
             )
             .join("")
         : `<div class="empty">No matching courses found.</div>`;
@@ -181,7 +209,7 @@
           button.disabled = true;
           try {
             await window.Learnly.api(`/api/courses/${courseId}/enroll`, { method: "POST", json: {} });
-            setStatus("student-course-search-status", "Enrolled successfully. Reloading dashboard…", "ok");
+            setStatus("student-course-search-status", "Enrolled successfully. Reloading dashboard...", "ok");
             setTimeout(() => window.location.reload(), 500);
           } catch (error) {
             setStatus("student-course-search-status", error.message || "Enrollment failed", "error");
@@ -203,17 +231,19 @@
         return;
       }
 
-      renderLayout(
-        app,
-        me.profile,
-        [
-          { id: "overview", label: "Overview" },
-          { id: "courses", label: "Courses" },
-          { id: "quizzes", label: "Quizzes & grades" },
-          { id: "announcements", label: "Announcements" },
-        ],
-        content(me.dashboard)
-      );
+      const currentPage = pages.find((page) => page.id === section) || pages[0];
+      const content = {
+        overview: renderOverview,
+        courses: renderCourses,
+        quizzes: renderQuizzes,
+        announcements: renderAnnouncements,
+      }[section];
+
+      renderLayout(app, me.profile, pages, content(me.dashboard), {
+        activeId: currentPage.id,
+        pageTitle: currentPage.title,
+        pageDescription: currentPage.description,
+      });
 
       document.getElementById("student-course-search")?.addEventListener("submit", async (event) => {
         event.preventDefault();

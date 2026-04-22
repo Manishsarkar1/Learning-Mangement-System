@@ -19,6 +19,7 @@ async function loadAssignmentAndCourse(assignmentId) {
     SELECT
       a.id AS assignmentId,
       a.title AS assignmentTitle,
+      a.due_date AS dueDate,
       a.course_id AS courseId,
       c.title AS courseTitle,
       c.instructor_id AS instructorId
@@ -55,6 +56,10 @@ async function submit(req, res) {
   if (req.user.role !== "admin") {
     const ok = await ensureStudentEnrollment({ courseId: Number(info.courseId), studentId });
     if (!ok) return res.status(403).json({ message: "You are not enrolled in this course" });
+  }
+
+  if (info.dueDate && new Date(info.dueDate).getTime() < Date.now()) {
+    return res.status(400).json({ message: "Submission deadline has passed" });
   }
 
   const filePath = req.file ? `uploads/submissions/${req.file.filename}` : null;

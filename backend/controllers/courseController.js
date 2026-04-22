@@ -1,5 +1,6 @@
 const db = require("../config/db");
 const { writeAuditLog } = require("../services/auditLog");
+const { isInstructorLike, normalizeRole } = require("../utils/roles");
 
 function toId(value) {
   const n = Number(value);
@@ -15,6 +16,253 @@ function clamp(value, min, max, fallback) {
 
 function buildLikeTerm(value) {
   return `%${String(value || "").trim()}%`;
+}
+
+function buildCompletionStatus(progressPercentage, totalLessons) {
+  if (!totalLessons) return "not_started";
+  if (progressPercentage >= 100) return "completed";
+  if (progressPercentage > 0) return "in_progress";
+  return "not_started";
+}
+
+async function getCourseAccess(courseId, user) {
+  const rows = await db.query(
+    `
+    SELECT id, title, instructor_id AS instructorId
+    FROM courses
+    WHERE id = ?
+    LIMIT 1
+  `,
+    [courseId]
+  );
+  if (!rows || rows.length === 0) return null;
+
+  const course = rows[0];
+  const userId = toId(user && user.id);
+  const normalizedRole = normalizeRole(user && user.role);
+  const isAdmin = normalizedRole === "admin";
+  const isOwner = isInstructorLike(user && user.role) && Number(course.instructorId) === userId;
+  const enrolledRows = userId
+    ? await db.query("SELECT 1 AS ok FROM enrollments WHERE course_id = ? AND student_id = ? LIMIT 1", [courseId, userId])
+    : [];
+  const isEnrolled = normalizedRole === "student" && enrolledRows && enrolledRows.length > 0;
+
+  return {
+    course,
+    userId,
+    normalizedRole,
+    isAdmin,
+    isOwner,
+    isEnrolled,
+    canView: isAdmin || isOwner || isEnrolled,
+  };
+}
+
+async function loadCourseDiscussions(courseId) {
+  const threads = await db.query(
+    `
+    SELECT
+      t.id,
+      t.course_id AS courseId,
+      t.author_id AS authorId,
+      t.title,
+      t.body,
+      t.created_at AS createdAt,
+      t.updated_at AS updatedAt,
+      u.name AS authorName,
+      u.role AS authorRole,
+      (
+        SELECT COUNT(*)
+        FROM discussion_replies r
+        WHERE r.thread_id = t.id
+      ) AS replyCount
+    FROM discussion_threads t
+    JOIN users u ON u.id = t.author_id
+    WHERE t.course_id = ?
+    ORDER BY t.updated_at DESC, t.created_at DESC
+    LIMIT 30
+  `,
+    [courseId]
+  );
+
+  if (!threads || threads.length === 0) return [];
+
+  const threadIds = threads.map((thread) => thread.id);
+  const placeholders = threadIds.map(() => "?").join(", ");
+  const replies = await db.query(
+    `
+    SELECT
+      r.id,
+      r.thread_id AS threadId,
+      r.author_id AS authorId,
+      r.body,
+      r.created_at AS createdAt,
+      r.updated_at AS updatedAt,
+      u.name AS authorName,
+      u.role AS authorRole
+    FROM discussion_replies r
+    JOIN users u ON u.id = r.author_id
+    WHERE r.thread_id IN (${placeholders})
+    ORDER BY r.created_at ASC
+  `,
+    threadIds
+  );
+
+  const repliesByThreadId = new Map();
+  for (const reply of replies || []) {
+    const key = String(reply.threadId);
+    if (!repliesByThreadId.has(key)) repliesByThreadId.set(key, []);
+    repliesByThreadId.get(key).push({
+      id: String(reply.id),
+      threadId: String(reply.threadId),
+      body: reply.body,
+      createdAt: reply.createdAt,
+      updatedAt: reply.updatedAt,
+      author: {
+        id: String(reply.authorId),
+        name: reply.authorName,
+        role: normalizeRole(reply.authorRole),
+      },
+    });
+  }
+
+  return threads.map((thread) => ({
+    id: String(thread.id),
+    courseId: String(thread.courseId),
+    title: thread.title,
+    body: thread.body,
+    createdAt: thread.createdAt,
+    updatedAt: thread.updatedAt,
+    replyCount: Number(thread.replyCount) || 0,
+    author: {
+      id: String(thread.authorId),
+      name: thread.authorName,
+      role: normalizeRole(thread.authorRole),
+    },
+    replies: repliesByThreadId.get(String(thread.id)) || [],
+  }));
+}
+
+async function loadCourseProgress(courseId, access, materialsInput) {
+  const materials =
+    materialsInput ||
+    (await db.query(
+      `
+      SELECT id, type, title, url, uploaded_by AS uploadedBy, created_at AS createdAt
+      FROM course_materials
+      WHERE course_id = ?
+      ORDER BY created_at ASC, id ASC
+    `,
+      [courseId]
+    ));
+
+  const totalLessons = (materials || []).length;
+
+  if (access.normalizedRole === "student" && access.userId) {
+    const progressRows = await db.query(
+      `
+      SELECT material_id AS materialId, completed_at AS completedAt
+      FROM lesson_progress
+      WHERE course_id = ? AND student_id = ?
+    `,
+      [courseId, access.userId]
+    );
+
+    const progressByMaterial = new Map(
+      (progressRows || []).map((row) => [String(row.materialId), row.completedAt])
+    );
+
+    const lessons = (materials || []).map((material) => ({
+      id: String(material.id),
+      title: material.title,
+      type: material.type,
+      url: material.url,
+      createdAt: material.createdAt,
+      completed: progressByMaterial.has(String(material.id)),
+      completedAt: progressByMaterial.get(String(material.id)) || null,
+    }));
+
+    const completedLessons = lessons.filter((lesson) => lesson.completed).length;
+    const progressPercentage = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
+
+    return {
+      totalLessons,
+      completedLessons,
+      pendingLessons: Math.max(0, totalLessons - completedLessons),
+      progressPercentage,
+      completionStatus: buildCompletionStatus(progressPercentage, totalLessons),
+      lessons,
+    };
+  }
+
+  if (access.isAdmin || access.isOwner) {
+    const studentRows = await db.query(
+      `
+      SELECT
+        u.id,
+        u.name,
+        u.email,
+        e.created_at AS enrolledAt,
+        COUNT(DISTINCT lp.material_id) AS completedLessons,
+        MAX(lp.completed_at) AS lastCompletedAt
+      FROM enrollments e
+      JOIN users u ON u.id = e.student_id
+      LEFT JOIN lesson_progress lp ON lp.course_id = e.course_id AND lp.student_id = e.student_id
+      WHERE e.course_id = ?
+      GROUP BY u.id, u.name, u.email, e.created_at
+      ORDER BY u.name ASC
+    `,
+        [courseId]
+    );
+
+    const students = (studentRows || []).map((student) => {
+      const completedLessons = Number(student.completedLessons) || 0;
+      const progressPercentage = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
+      return {
+        id: String(student.id),
+        name: student.name,
+        email: student.email,
+        enrolledAt: student.enrolledAt,
+        completedLessons,
+        totalLessons,
+        pendingLessons: Math.max(0, totalLessons - completedLessons),
+        progressPercentage,
+        completionStatus: buildCompletionStatus(progressPercentage, totalLessons),
+        lastCompletedAt: student.lastCompletedAt,
+      };
+    });
+
+    const completedStudents = students.filter((student) => student.completionStatus === "completed").length;
+    const averageProgressPercentage = students.length
+      ? Math.round(students.reduce((sum, student) => sum + student.progressPercentage, 0) / students.length)
+      : 0;
+
+    return {
+      totalLessons,
+      studentsTracked: students.length,
+      completedStudents,
+      averageProgressPercentage,
+      completionRate: students.length ? Math.round((completedStudents / students.length) * 100) : 0,
+      students,
+    };
+  }
+
+  return {
+    totalLessons,
+    completedLessons: 0,
+    pendingLessons: totalLessons,
+    progressPercentage: 0,
+    completionStatus: buildCompletionStatus(0, totalLessons),
+    lessons: (materials || []).map((material) => ({
+      id: String(material.id),
+      title: material.title,
+      type: material.type,
+      url: material.url,
+      createdAt: material.createdAt,
+      completed: false,
+      completedAt: null,
+    })),
+  };
 }
 
 async function listCourses(req, res) {
@@ -167,7 +415,7 @@ async function myCourses(req, res) {
   const userId = toId(req.user.id);
   if (!userId) return res.status(400).json({ message: "Invalid user id" });
 
-  if (req.user.role === "student") {
+  if (normalizeRole(req.user.role) === "student") {
     const rows = await db.query(
       `
       SELECT
@@ -202,7 +450,7 @@ async function myCourses(req, res) {
     );
   }
 
-  if (req.user.role === "instructor") {
+  if (isInstructorLike(req.user.role)) {
     const rows = await db.query(
       `
       SELECT
@@ -274,11 +522,12 @@ async function getCourse(req, res) {
   if (!rows || rows.length === 0) return res.status(404).json({ message: "Course not found" });
   const course = rows[0];
 
-  const userId = toId(req.user.id);
-  const isAdmin = req.user.role === "admin";
-  const isOwner = req.user.role === "instructor" && Number(course.instructorId) === userId;
-  const enrolledRows = await db.query("SELECT 1 AS ok FROM enrollments WHERE course_id = ? AND student_id = ? LIMIT 1", [courseId, userId]);
-  const isEnrolled = req.user.role === "student" && enrolledRows && enrolledRows.length > 0;
+  const access = await getCourseAccess(courseId, req.user);
+  const userId = access.userId;
+  const normalizedRole = access.normalizedRole;
+  const isAdmin = access.isAdmin;
+  const isOwner = access.isOwner;
+  const isEnrolled = access.isEnrolled;
 
   const base = {
     id: String(course.id),
@@ -292,7 +541,22 @@ async function getCourse(req, res) {
   };
 
   if (!isAdmin && !isOwner && !isEnrolled) {
-    return res.json({ ...base, materials: [], assignments: [], announcements: [], quizzes: [] });
+    return res.json({
+      ...base,
+      materials: [],
+      assignments: [],
+      announcements: [],
+      quizzes: [],
+      discussions: [],
+      progress: {
+        totalLessons: 0,
+        completedLessons: 0,
+        pendingLessons: 0,
+        progressPercentage: 0,
+        completionStatus: "not_started",
+        lessons: [],
+      },
+    });
   }
 
   const materials = await db.query(
@@ -348,11 +612,11 @@ async function getCourse(req, res) {
       u.name AS authorName
     FROM announcements a
     JOIN users u ON u.id = a.author_id
-    WHERE a.course_id = ? OR (a.course_id IS NULL AND a.audience IN ('all', ?, 'admins'))
+      WHERE a.course_id = ? OR (a.course_id IS NULL AND a.audience IN ('all', ?, 'admins'))
     ORDER BY a.created_at DESC
     LIMIT 10
   `,
-    [courseId, req.user.role]
+    [courseId, normalizedRole]
   );
 
   const quizzes = await db.query(
@@ -381,6 +645,9 @@ async function getCourse(req, res) {
   `,
     [userId, courseId]
   );
+
+  const discussions = await loadCourseDiscussions(courseId);
+  const progress = await loadCourseProgress(courseId, access, materials);
 
   let students = undefined;
   if (isAdmin || isOwner) {
@@ -412,6 +679,7 @@ async function getCourse(req, res) {
       submissionCount: Number(item.submissionCount) || 0,
       mySubmissionId: item.mySubmissionId ? String(item.mySubmissionId) : null,
       myGradeScore: item.myGradeScore !== null ? Number(item.myGradeScore) : null,
+      isPastDue: item.dueDate ? new Date(item.dueDate).getTime() < Date.now() : false,
     })),
     announcements: (announcements || []).map((item) => ({ ...item, id: String(item.id) })),
     quizzes: (quizzes || []).map((item) => ({
@@ -426,6 +694,8 @@ async function getCourse(req, res) {
       totalMarks: Number(item.totalMarks) || 0,
       myLatestScore: item.myLatestScore !== null ? Number(item.myLatestScore) : null,
     })),
+    discussions,
+    progress,
     students: students
       ? students.map((student) => ({
           id: String(student.id),
@@ -437,24 +707,264 @@ async function getCourse(req, res) {
   });
 }
 
+async function getCourseProgress(req, res) {
+  const courseId = toId(req.params.courseId);
+  if (!courseId) return res.status(400).json({ message: "Invalid courseId" });
+
+  const access = await getCourseAccess(courseId, req.user);
+  if (!access) return res.status(404).json({ message: "Course not found" });
+  if (!access.canView && !access.isAdmin && !access.isOwner) return res.status(403).json({ message: "Forbidden" });
+
+  const progress = await loadCourseProgress(courseId, access);
+  return res.json(progress);
+}
+
+async function createDiscussionThread(req, res) {
+  const courseId = toId(req.params.courseId);
+  if (!courseId) return res.status(400).json({ message: "Invalid courseId" });
+
+  const access = await getCourseAccess(courseId, req.user);
+  if (!access) return res.status(404).json({ message: "Course not found" });
+  if (!access.canView) return res.status(403).json({ message: "Forbidden" });
+
+  const title = String(req.body && req.body.title ? req.body.title : "").trim();
+  const body = String(req.body && req.body.body ? req.body.body : "").trim();
+
+  if (!title) return res.status(400).json({ message: "Discussion title is required" });
+  if (!body) return res.status(400).json({ message: "Discussion message is required" });
+  if (title.length > 200) return res.status(400).json({ message: "Discussion title is too long" });
+
+  const result = await db.exec("INSERT INTO discussion_threads (course_id, author_id, title, body) VALUES (?, ?, ?, ?)", [
+    courseId,
+    access.userId,
+    title,
+    body,
+  ]);
+
+  await writeAuditLog({
+    actorUserId: access.userId,
+    action: "discussion.thread_created",
+    entityType: "discussion_thread",
+    entityId: result.insertId,
+    message: `Discussion started in ${access.course.title}: ${title}`,
+    meta: { courseId },
+  });
+
+  return res.status(201).json({ message: "Discussion thread created", threadId: String(result.insertId) });
+}
+
+async function createDiscussionReply(req, res) {
+  const courseId = toId(req.params.courseId);
+  const threadId = toId(req.params.threadId);
+  if (!courseId) return res.status(400).json({ message: "Invalid courseId" });
+  if (!threadId) return res.status(400).json({ message: "Invalid threadId" });
+
+  const access = await getCourseAccess(courseId, req.user);
+  if (!access) return res.status(404).json({ message: "Course not found" });
+  if (!access.canView) return res.status(403).json({ message: "Forbidden" });
+
+  const threadRows = await db.query(
+    `
+    SELECT id, title
+    FROM discussion_threads
+    WHERE id = ? AND course_id = ?
+    LIMIT 1
+  `,
+    [threadId, courseId]
+  );
+  if (!threadRows || threadRows.length === 0) return res.status(404).json({ message: "Discussion thread not found" });
+
+  const body = String(req.body && req.body.body ? req.body.body : "").trim();
+  if (!body) return res.status(400).json({ message: "Reply message is required" });
+
+  const result = await db.exec("INSERT INTO discussion_replies (thread_id, author_id, body) VALUES (?, ?, ?)", [threadId, access.userId, body]);
+  await db.exec("UPDATE discussion_threads SET updated_at = NOW(3) WHERE id = ?", [threadId]);
+
+  await writeAuditLog({
+    actorUserId: access.userId,
+    action: "discussion.reply_created",
+    entityType: "discussion_reply",
+    entityId: result.insertId,
+    message: `Reply added to discussion in ${access.course.title}: ${threadRows[0].title}`,
+    meta: { courseId, threadId },
+  });
+
+  return res.status(201).json({ message: "Reply posted", replyId: String(result.insertId) });
+}
+
+async function deleteDiscussionThread(req, res) {
+  const courseId = toId(req.params.courseId);
+  const threadId = toId(req.params.threadId);
+  if (!courseId) return res.status(400).json({ message: "Invalid courseId" });
+  if (!threadId) return res.status(400).json({ message: "Invalid threadId" });
+
+  const access = await getCourseAccess(courseId, req.user);
+  if (!access) return res.status(404).json({ message: "Course not found" });
+
+  const rows = await db.query(
+    `
+    SELECT id, author_id AS authorId, title
+    FROM discussion_threads
+    WHERE id = ? AND course_id = ?
+    LIMIT 1
+  `,
+    [threadId, courseId]
+  );
+  if (!rows || rows.length === 0) return res.status(404).json({ message: "Discussion thread not found" });
+
+  const thread = rows[0];
+  const isAuthor = access.userId && Number(thread.authorId) === access.userId;
+  if (!access.isAdmin && !access.isOwner && !isAuthor) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+
+  await db.exec("DELETE FROM discussion_threads WHERE id = ?", [threadId]);
+
+  await writeAuditLog({
+    actorUserId: access.userId,
+    action: "discussion.thread_deleted",
+    entityType: "discussion_thread",
+    entityId: threadId,
+    message: `Discussion removed from ${access.course.title}: ${thread.title}`,
+    meta: { courseId },
+  });
+
+  return res.json({ message: "Discussion deleted" });
+}
+
+async function deleteDiscussionReply(req, res) {
+  const courseId = toId(req.params.courseId);
+  const threadId = toId(req.params.threadId);
+  const replyId = toId(req.params.replyId);
+  if (!courseId) return res.status(400).json({ message: "Invalid courseId" });
+  if (!threadId) return res.status(400).json({ message: "Invalid threadId" });
+  if (!replyId) return res.status(400).json({ message: "Invalid replyId" });
+
+  const access = await getCourseAccess(courseId, req.user);
+  if (!access) return res.status(404).json({ message: "Course not found" });
+
+  const rows = await db.query(
+    `
+    SELECT r.id, r.author_id AS authorId, r.body
+    FROM discussion_replies r
+    JOIN discussion_threads t ON t.id = r.thread_id
+    WHERE r.id = ? AND r.thread_id = ? AND t.course_id = ?
+    LIMIT 1
+  `,
+    [replyId, threadId, courseId]
+  );
+  if (!rows || rows.length === 0) return res.status(404).json({ message: "Discussion reply not found" });
+
+  const reply = rows[0];
+  const isAuthor = access.userId && Number(reply.authorId) === access.userId;
+  if (!access.isAdmin && !access.isOwner && !isAuthor) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+
+  await db.exec("DELETE FROM discussion_replies WHERE id = ?", [replyId]);
+  await db.exec("UPDATE discussion_threads SET updated_at = NOW(3) WHERE id = ?", [threadId]);
+
+  await writeAuditLog({
+    actorUserId: access.userId,
+    action: "discussion.reply_deleted",
+    entityType: "discussion_reply",
+    entityId: replyId,
+    message: `Discussion reply removed from ${access.course.title}`,
+    meta: { courseId, threadId },
+  });
+
+  return res.json({ message: "Reply deleted" });
+}
+
+async function markLessonComplete(req, res) {
+  const courseId = toId(req.params.courseId);
+  const materialId = toId(req.params.materialId);
+  if (!courseId) return res.status(400).json({ message: "Invalid courseId" });
+  if (!materialId) return res.status(400).json({ message: "Invalid materialId" });
+
+  const access = await getCourseAccess(courseId, req.user);
+  if (!access) return res.status(404).json({ message: "Course not found" });
+  if (access.normalizedRole !== "student" || !access.isEnrolled) {
+    return res.status(403).json({ message: "Only enrolled students can update progress" });
+  }
+
+  const materialRows = await db.query(
+    `
+    SELECT id, title
+    FROM course_materials
+    WHERE id = ? AND course_id = ?
+    LIMIT 1
+  `,
+    [materialId, courseId]
+  );
+  if (!materialRows || materialRows.length === 0) return res.status(404).json({ message: "Lesson not found" });
+
+  try {
+    await db.exec("INSERT INTO lesson_progress (course_id, material_id, student_id, completed_at) VALUES (?, ?, ?, NOW(3))", [
+      courseId,
+      materialId,
+      access.userId,
+    ]);
+  } catch (error) {
+    if (!(error && error.code === "ER_DUP_ENTRY")) throw error;
+    await db.exec("UPDATE lesson_progress SET completed_at = NOW(3) WHERE course_id = ? AND material_id = ? AND student_id = ?", [
+      courseId,
+      materialId,
+      access.userId,
+    ]);
+  }
+
+  const progress = await loadCourseProgress(courseId, access);
+  return res.json({ message: "Lesson marked complete", progress });
+}
+
+async function markLessonIncomplete(req, res) {
+  const courseId = toId(req.params.courseId);
+  const materialId = toId(req.params.materialId);
+  if (!courseId) return res.status(400).json({ message: "Invalid courseId" });
+  if (!materialId) return res.status(400).json({ message: "Invalid materialId" });
+
+  const access = await getCourseAccess(courseId, req.user);
+  if (!access) return res.status(404).json({ message: "Course not found" });
+  if (access.normalizedRole !== "student" || !access.isEnrolled) {
+    return res.status(403).json({ message: "Only enrolled students can update progress" });
+  }
+
+  await db.exec("DELETE FROM lesson_progress WHERE course_id = ? AND material_id = ? AND student_id = ?", [
+    courseId,
+    materialId,
+    access.userId,
+  ]);
+
+  const progress = await loadCourseProgress(courseId, access);
+  return res.json({ message: "Lesson marked pending", progress });
+}
+
 async function addMaterial(req, res) {
   const courseId = toId(req.params.courseId);
   if (!courseId) return res.status(400).json({ message: "Invalid courseId" });
 
-  const type = String(req.body && req.body.type ? req.body.type : "").trim().toLowerCase();
+  let type = String(req.body && req.body.type ? req.body.type : "").trim().toLowerCase();
   const title = String(req.body && req.body.title ? req.body.title : "").trim();
-  const url = String(req.body && req.body.url ? req.body.url : "").trim();
+  let url = String(req.body && req.body.url ? req.body.url : "").trim();
 
-  if (!["pdf", "video", "link"].includes(type)) return res.status(400).json({ message: "Invalid material type" });
   if (!title) return res.status(400).json({ message: "Title is required" });
-  if (!url) return res.status(400).json({ message: "URL is required" });
+  if (!url && !req.file) return res.status(400).json({ message: "Provide a URL or upload a file" });
+
+  if (req.file) {
+    if (!type) {
+      type = String(req.file.mimetype || "").startsWith("video/") ? "video" : "pdf";
+    }
+    url = `uploads/materials/${req.file.filename}`;
+  }
+  if (!["pdf", "video", "link"].includes(type)) return res.status(400).json({ message: "Invalid material type" });
 
   const userId = toId(req.user.id);
   const courseRows = await db.query("SELECT instructor_id AS instructorId, title FROM courses WHERE id = ? LIMIT 1", [courseId]);
   if (!courseRows || courseRows.length === 0) return res.status(404).json({ message: "Course not found" });
 
-  const isAdmin = req.user.role === "admin";
-  const isOwner = req.user.role === "instructor" && Number(courseRows[0].instructorId) === userId;
+  const isAdmin = normalizeRole(req.user.role) === "admin";
+  const isOwner = isInstructorLike(req.user.role) && Number(courseRows[0].instructorId) === userId;
   if (!isAdmin && !isOwner) return res.status(403).json({ message: "Forbidden" });
 
   await db.exec("INSERT INTO course_materials (course_id, type, title, url, uploaded_by) VALUES (?, ?, ?, ?, ?)", [
@@ -484,6 +994,13 @@ module.exports = {
   enrollLegacy,
   myCourses,
   getCourse,
+  getCourseProgress,
+  createDiscussionThread,
+  createDiscussionReply,
+  deleteDiscussionThread,
+  deleteDiscussionReply,
+  markLessonComplete,
+  markLessonIncomplete,
   addMaterial,
   toId,
 };

@@ -67,12 +67,12 @@
     <div class="card">
       <h1 style="margin: 0 0 12px">Sign in</h1>
       <p class="muted" style="margin: 0 0 18px">
-        Sign in to continue. This posts to <code>POST /api/auth/login</code> on this server.
+        Sign in to continue to your LMS dashboard, courses, and learning resources.
       </p>
 
       <form id="login-form">
         <label for="email">Email</label>
-        <input id="email" name="email" type="email" autocomplete="email" required />
+        <input id="email" name="email" type="email" autocomplete="email" placeholder="name@example.com" required />
 
         <label for="password">Password</label>
         <input id="password" name="password" type="password" autocomplete="current-password" required />
@@ -82,6 +82,7 @@
       </form>
 
       <p class="muted" style="margin: 16px 0 0">New here? <a href="/signup.html">Create an account</a></p>
+      <p class="muted" style="margin: 8px 0 0"><a href="/forgot-password.html">Forgot your password?</a></p>
       <p style="margin: 16px 0 0"><a href="/">← Back to home</a></p>
     </div>
 

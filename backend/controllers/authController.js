@@ -4,10 +4,11 @@ const jwt = require("jsonwebtoken");
 
 const db = require("../config/db");
 const { writeAuditLog } = require("../services/auditLog");
+const { normalizeRole } = require("../utils/roles");
 
 function signToken(user) {
   const secret = process.env.JWT_SECRET || "dev_secret_change_me";
-  return jwt.sign({ id: String(user.id), role: user.role }, secret, { expiresIn: "7d" });
+  return jwt.sign({ id: String(user.id), role: normalizeRole(user.role) }, secret, { expiresIn: "7d" });
 }
 
 function setAuthCookie(res, token) {
@@ -31,6 +32,16 @@ function clearAuthCookie(res) {
 
 function isValidEmail(email) {
   return typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validatePassword(password) {
+  const value = typeof password === "string" ? password : "";
+  if (value.length < 8) return "Password must be at least 8 characters";
+  if (!/[a-z]/.test(value)) return "Password must include a lowercase letter";
+  if (!/[A-Z]/.test(value)) return "Password must include an uppercase letter";
+  if (!/\d/.test(value)) return "Password must include a number";
+  if (!/[^A-Za-z0-9]/.test(value)) return "Password must include a special character";
+  return "";
 }
 
 function hashResetToken(token) {
@@ -65,12 +76,15 @@ async function register(req, res) {
   const name = String(req.body && req.body.name ? req.body.name : "").trim();
   const email = String(req.body && req.body.email ? req.body.email : "").trim().toLowerCase();
   const password = req.body ? req.body.password : null;
-  const role = String(req.body && req.body.role ? req.body.role : "student").trim().toLowerCase();
+  const role = normalizeRole(req.body && req.body.role ? req.body.role : "student");
+  const passwordError = validatePassword(password);
 
   if (!name) return res.status(400).json({ message: "Name is required" });
+  if (name.length < 2) return res.status(400).json({ message: "Name must be at least 2 characters" });
+  if (name.length > 120) return res.status(400).json({ message: "Name is too long" });
   if (!isValidEmail(email)) return res.status(400).json({ message: "Valid email is required" });
-  if (typeof password !== "string" || password.length < 6) return res.status(400).json({ message: "Password must be at least 6 characters" });
-  if (!["student", "instructor"].includes(role)) return res.status(400).json({ message: "Role must be student or instructor" });
+  if (passwordError) return res.status(400).json({ message: passwordError });
+  if (!["student", "instructor"].includes(role)) return res.status(400).json({ message: "Role must be student or faculty/instructor" });
 
   const passwordHash = await bcrypt.hash(password, 10);
   try {
@@ -86,7 +100,10 @@ async function register(req, res) {
       meta: { email, role },
     });
 
-    return res.status(201).json({ message: "User registered", user: { id: String(result.insertId), name, email, role } });
+    return res.status(201).json({
+      message: "Registration successful. Your account is ready.",
+      user: { id: String(result.insertId), name, email, role },
+    });
   } catch (e) {
     if (e && e.code === "ER_DUP_ENTRY") return res.status(409).json({ message: "Email already in use" });
     throw e;
@@ -107,7 +124,8 @@ async function login(req, res) {
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) return res.status(400).json({ message: "Invalid password" });
 
-  const token = signToken({ id: user.id, role: user.role });
+  const role = normalizeRole(user.role);
+  const token = signToken({ id: user.id, role });
   setAuthCookie(res, token);
 
   await writeAuditLog({
@@ -116,13 +134,13 @@ async function login(req, res) {
     entityType: "session",
     entityId: user.id,
     message: `${user.email} signed in`,
-    meta: { role: user.role },
+    meta: { role },
   });
 
   return res.json({
     message: "Signed in",
     token,
-    user: { id: String(user.id), name: user.name, email: user.email, role: user.role },
+    user: { id: String(user.id), name: user.name, email: user.email, role },
   });
 }
 
@@ -179,8 +197,9 @@ async function forgotPassword(req, res) {
 async function resetPassword(req, res) {
   const rawToken = String(req.body && req.body.token ? req.body.token : "").trim();
   const password = req.body ? req.body.password : null;
+  const passwordError = validatePassword(password);
   if (!rawToken) return res.status(400).json({ message: "Reset token is required" });
-  if (typeof password !== "string" || password.length < 6) return res.status(400).json({ message: "Password must be at least 6 characters" });
+  if (passwordError) return res.status(400).json({ message: passwordError });
 
   const tokenHash = hashResetToken(rawToken);
   const rows = await db.query(
@@ -218,7 +237,7 @@ async function me(req, res) {
       id: String(user.id),
       name: user.name,
       email: user.email,
-      role: user.role,
+      role: normalizeRole(user.role),
       createdAt: user.createdAt,
       profile: {
         title: user.title || "",

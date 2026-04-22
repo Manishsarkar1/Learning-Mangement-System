@@ -9,6 +9,23 @@ function setStatus(message, type) {
   el.dataset.type = type || "";
 }
 
+function validateEmailInput(value) {
+  const email = String(value || "").trim().toLowerCase();
+  if (!email) return "Email is required";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Enter a valid email address";
+  return "";
+}
+
+function validatePasswordInput(value) {
+  const password = String(value || "");
+  if (password.length < 8) return "Password must be at least 8 characters";
+  if (!/[a-z]/.test(password)) return "Password must include a lowercase letter";
+  if (!/[A-Z]/.test(password)) return "Password must include an uppercase letter";
+  if (!/\d/.test(password)) return "Password must include a number";
+  if (!/[^A-Za-z0-9]/.test(password)) return "Password must include a special character";
+  return "";
+}
+
 async function apiPostJson(path, body) {
   let res;
   try {
@@ -44,7 +61,7 @@ async function apiPostJson(path, body) {
 }
 
 function saveToken(token) {
-  localStorage.removeItem("learnly_token");
+  localStorage.setItem("learnly_token", token);
   sessionStorage.setItem("learnly_session_hint", token ? "1" : "0");
 
   if (window.location.pathname === "/signin.html") {
@@ -107,8 +124,12 @@ function bindSignInForm() {
     }
 
     try {
+      const emailValue = email ? email.value.trim().toLowerCase() : "";
+      const emailError = validateEmailInput(emailValue);
+      if (emailError) throw new Error(emailError);
+
       const data = await apiPostJson("/api/auth/login", {
-        email: email ? email.value.trim().toLowerCase() : "",
+        email: emailValue,
         password: password ? password.value : "",
       });
       saveToken(data.token);
@@ -150,9 +171,15 @@ function bindSignUpForm() {
     }
 
     try {
+      const emailValue = email ? email.value.trim().toLowerCase() : "";
+      const emailError = validateEmailInput(emailValue);
+      if (emailError) throw new Error(emailError);
+      const passwordError = validatePasswordInput(password ? password.value : "");
+      if (passwordError) throw new Error(passwordError);
+
       await apiPostJson("/api/auth/register", {
         name: name ? name.value.trim() : "",
-        email: email ? email.value.trim().toLowerCase() : "",
+        email: emailValue,
         password: password ? password.value : "",
         role: role ? role.value : "student",
       });
@@ -188,4 +215,6 @@ window.LearnlyAuth = {
   saveToken,
   loadToken,
   clearToken,
+  validateEmailInput,
+  validatePasswordInput,
 };

@@ -156,6 +156,7 @@ async function buildStudentDashboard(userId) {
       u.name AS instructorName,
       c.created_at AS createdAt,
       (SELECT COUNT(*) FROM course_materials cm WHERE cm.course_id = c.id) AS materialCount,
+      (SELECT COUNT(*) FROM lesson_progress lp WHERE lp.course_id = c.id AND lp.student_id = ?) AS completedLessonCount,
       (SELECT COUNT(*) FROM assignments a WHERE a.course_id = c.id) AS assignmentCount,
       (SELECT COUNT(*) FROM submissions s WHERE s.course_id = c.id AND s.student_id = ?) AS submissionCount,
       (
@@ -177,24 +178,27 @@ async function buildStudentDashboard(userId) {
     WHERE e.student_id = ?
     ORDER BY c.created_at DESC
   `,
-    [userId, userId, userId, userId]
+    [userId, userId, userId, userId, userId]
   );
 
   const courses = (courseRows || []).map((row) => {
-    const assignmentCount = Number(row.assignmentCount) || 0;
-    const submissionCount = Number(row.submissionCount) || 0;
+    const totalLessons = Number(row.materialCount) || 0;
+    const completedLessons = Number(row.completedLessonCount) || 0;
+    const progress = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
     return {
       id: String(row.id),
       title: row.title,
       description: row.description,
       category: row.category,
       instructorName: row.instructorName,
-      materialCount: Number(row.materialCount) || 0,
-      assignmentCount,
-      submissionCount,
+      materialCount: totalLessons,
+      completedLessons,
+      assignmentCount: Number(row.assignmentCount) || 0,
+      submissionCount: Number(row.submissionCount) || 0,
       averageScore: row.averageScore !== null ? Number(row.averageScore) : null,
       latestQuizScore: row.latestQuizScore !== null ? Number(row.latestQuizScore) : null,
-      progress: assignmentCount > 0 ? Math.round((submissionCount / assignmentCount) * 100) : 0,
+      progress,
+      completionStatus: progress >= 100 && totalLessons > 0 ? "completed" : progress > 0 ? "in_progress" : "not_started",
       createdAt: row.createdAt,
     };
   });

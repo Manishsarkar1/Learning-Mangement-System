@@ -18,6 +18,20 @@
     el.className = `status${type ? ` ${type}` : ""}`;
   }
 
+  function validateEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim().toLowerCase());
+  }
+
+  function validatePassword(password) {
+    const value = String(password || "");
+    if (value.length < 8) return "Password must be at least 8 characters.";
+    if (!/[a-z]/.test(value)) return "Password must include a lowercase letter.";
+    if (!/[A-Z]/.test(value)) return "Password must include an uppercase letter.";
+    if (!/\d/.test(value)) return "Password must include a number.";
+    if (!/[^A-Za-z0-9]/.test(value)) return "Password must include a special character.";
+    return "";
+  }
+
   async function postJson(path, body) {
     const res = await fetch(path, {
       method: "POST",
@@ -57,6 +71,7 @@
           <form id="reset-form" class="stack">
             <div class="field"><label>Reset token</label><input name="token" value="${escapeHtml(token || "")}" required /></div>
             <div class="field"><label>New password</label><input name="password" type="password" required /></div>
+            <div class="muted">Use at least 8 characters with uppercase, lowercase, number, and special character.</div>
             <button class="btn" type="submit">Update password</button>
             <div class="status" id="reset-status"></div>
           </form>
@@ -74,6 +89,7 @@
       setStatus("forgot-status", "", "");
       document.getElementById("forgot-debug").innerHTML = "";
       try {
+        if (!validateEmail(email)) throw new Error("Enter a valid email address.");
         const data = await postJson("/api/auth/forgot-password", { email });
         setStatus("forgot-status", data.message || "Reset link generated.", "ok");
         if (data.debugResetUrl) {
@@ -99,6 +115,8 @@
       const form = event.currentTarget;
       setStatus("reset-status", "", "");
       try {
+        const passwordError = validatePassword(form.password.value);
+        if (passwordError) throw new Error(passwordError);
         const data = await postJson("/api/auth/reset-password", { token: form.token.value.trim(), password: form.password.value });
         setStatus("reset-status", data.message || "Password updated. Redirecting…", "ok");
         setTimeout(() => {

@@ -1,13 +1,29 @@
 (function () {
   const app = document.getElementById("app");
   const { escapeHtml, statusMarkup, setStatus, chartMarkup, statCards, renderLayout, renderTable, paginationControls } = window.LearnlyDash;
+  const section = {
+    "/admin-dashboard.html": "overview",
+    "/admin-users.html": "users",
+    "/admin-courses.html": "courses",
+    "/admin-permissions.html": "permissions",
+    "/admin-audit.html": "audit",
+  }[window.location.pathname] || "overview";
+
+  const pages = [
+    { id: "overview", label: "Overview", href: "/admin-dashboard.html", title: "Admin overview", description: "Monitor the platform across users, courses, and activity." },
+    { id: "users", label: "Users", href: "/admin-users.html", title: "User management", description: "Create users and manage the directory." },
+    { id: "courses", label: "Courses", href: "/admin-courses.html", title: "Course catalogue", description: "Search and review all published courses." },
+    { id: "permissions", label: "Permissions", href: "/admin-permissions.html", title: "Permissions", description: "Update role access and send platform-wide announcements." },
+    { id: "audit", label: "Audit log", href: "/admin-audit.html", title: "Audit log", description: "Inspect system events and recent alerts." },
+  ];
+
   const state = {
     users: { page: 1, q: "", role: "" },
     courses: { page: 1, q: "" },
     logs: { page: 1, q: "" },
   };
 
-  function content(data) {
+  function renderOverview(data) {
     const stats = [
       { label: "Total Users", value: data.stats.totalUsers, help: "Students, instructors, and admins" },
       { label: "Courses", value: data.stats.totalCourses, help: "Published learning spaces" },
@@ -15,11 +31,13 @@
       { label: "Quiz Attempts", value: data.stats.totalQuizAttempts, help: "Stored learner quiz submissions" },
     ];
 
+    return `<div class="page">${statCards(stats)}</div>`;
+  }
+
+  function renderUsers(data) {
     return `
       <div class="page">
-        <section class="section-anchor" id="overview">${statCards(stats)}</section>
-
-        <section class="section-anchor grid two" id="users" style="margin-top:20px;">
+        <section class="grid two">
           <div class="card">
             <div class="card-header"><h2>Create user</h2></div>
             <form id="admin-create-user-form" class="stack">
@@ -47,7 +65,7 @@
           </div>
         </section>
 
-        <section class="section-anchor card" id="user-table" style="margin-top:20px;">
+        <section class="card" style="margin-top:20px;">
           <div class="card-header"><div><h2>User management</h2><div class="muted">Search, filter, and paginate users.</div></div></div>
           <form id="admin-user-search" class="row" style="margin-bottom:14px;">
             <div class="field"><label>Search</label><input name="q" placeholder="Name or email" /></div>
@@ -56,8 +74,14 @@
           </form>
           <div id="admin-users-table"></div>
         </section>
+      </div>
+    `;
+  }
 
-        <section class="section-anchor card" id="courses" style="margin-top:20px;">
+  function renderCoursesPage() {
+    return `
+      <div class="page">
+        <section class="card">
           <div class="card-header"><div><h2>Course catalogue</h2><div class="muted">Search and paginate all courses.</div></div></div>
           <form id="admin-course-search" class="row" style="margin-bottom:14px;">
             <div class="field"><label>Search</label><input name="q" placeholder="Course title, description, instructor" /></div>
@@ -65,8 +89,14 @@
           </form>
           <div id="admin-courses-table"></div>
         </section>
+      </div>
+    `;
+  }
 
-        <section class="section-anchor grid two" id="permissions" style="margin-top:20px;">
+  function renderPermissions(data) {
+    return `
+      <div class="page">
+        <section class="grid two">
           <div class="card">
             <div class="card-header"><h2>Role permissions</h2></div>
             <div id="permissions-list" class="list"></div>
@@ -82,8 +112,14 @@
             </form>
           </div>
         </section>
+      </div>
+    `;
+  }
 
-        <section class="section-anchor grid two" id="log-summary" style="margin-top:20px;">
+  function renderAudit(data) {
+    return `
+      <div class="page">
+        <section class="grid two">
           <div class="card">
             <div class="card-header"><h2>Top courses</h2></div>
             <div class="list">
@@ -92,11 +128,11 @@
                   ? data.analytics.topCourses
                       .map(
                         (course) => `
-                        <div class="list-item">
-                          <strong>${escapeHtml(course.title)}</strong>
-                          <div class="meta">${escapeHtml(course.instructorName)} · ${course.studentCount} students</div>
-                        </div>
-                      `
+                          <div class="list-item">
+                            <strong>${escapeHtml(course.title)}</strong>
+                            <div class="meta">${escapeHtml(course.instructorName)} | ${course.studentCount} students</div>
+                          </div>
+                        `
                       )
                       .join("")
                   : `<div class="empty">No course data yet.</div>`
@@ -111,12 +147,12 @@
                   ? data.alerts
                       .map(
                         (alert) => `
-                        <div class="list-item">
-                          <strong>${escapeHtml(alert.title)}</strong>
-                          <div class="meta">${escapeHtml(alert.level)}</div>
-                          <div class="muted" style="margin-top:8px;">${escapeHtml(alert.message)}</div>
-                        </div>
-                      `
+                          <div class="list-item">
+                            <strong>${escapeHtml(alert.title)}</strong>
+                            <div class="meta">${escapeHtml(alert.level)}</div>
+                            <div class="muted" style="margin-top:8px;">${escapeHtml(alert.message)}</div>
+                          </div>
+                        `
                       )
                       .join("")
                   : `<div class="empty">No active alerts right now.</div>`
@@ -125,7 +161,7 @@
           </div>
         </section>
 
-        <section class="section-anchor card" id="audit" style="margin-top:20px;">
+        <section class="card" style="margin-top:20px;">
           <div class="card-header"><div><h2>Audit log</h2><div class="muted">Search through real system activity.</div></div></div>
           <form id="admin-log-search" class="row" style="margin-bottom:14px;">
             <div class="field"><label>Search</label><input name="q" placeholder="Action or actor" /></div>
@@ -156,6 +192,7 @@
 
   async function loadUsers() {
     const target = document.getElementById("admin-users-table");
+    if (!target) return;
     target.innerHTML = `<div class="muted">Loading users...</div>`;
     const params = new URLSearchParams({ page: String(state.users.page), limit: "8" });
     if (state.users.q) params.set("q", state.users.q);
@@ -176,6 +213,7 @@
 
   async function loadCourses() {
     const target = document.getElementById("admin-courses-table");
+    if (!target) return;
     target.innerHTML = `<div class="muted">Loading courses...</div>`;
     const params = new URLSearchParams({ page: String(state.courses.page), limit: "8" });
     if (state.courses.q) params.set("q", state.courses.q);
@@ -196,6 +234,7 @@
 
   async function loadLogs() {
     const target = document.getElementById("admin-logs-table");
+    if (!target) return;
     target.innerHTML = `<div class="muted">Loading audit logs...</div>`;
     const params = new URLSearchParams({ page: String(state.logs.page), limit: "10" });
     if (state.logs.q) params.set("q", state.logs.q);
@@ -217,31 +256,12 @@
     }
   }
 
-  async function init() {
-    try {
-      const me = await window.Learnly.api("/api/dashboard/me");
-      if (me.role !== "admin") {
-        if (me.role === "student") window.location.replace("/student-dashboard.html");
-        if (me.role === "instructor") window.location.replace("/instructor-dashboard.html");
-        return;
-      }
-
-      renderLayout(
-        app,
-        me.profile,
-        [
-          { id: "overview", label: "Overview" },
-          { id: "users", label: "Users" },
-          { id: "courses", label: "Courses" },
-          { id: "permissions", label: "Permissions" },
-          { id: "audit", label: "Audit log" },
-        ],
-        content(me.dashboard)
-      );
-
-      document.getElementById("permissions-list").innerHTML = me.dashboard.permissions
-        .map(
-          (permission) => `
+  function bindPermissions(permissions) {
+    const container = document.getElementById("permissions-list");
+    if (!container) return;
+    container.innerHTML = permissions
+      .map(
+        (permission) => `
           <div class="list-item" data-permission-row="${escapeHtml(permission.key)}">
             <strong>${escapeHtml(permission.label)}</strong>
             <div class="row" style="margin-top:12px;">
@@ -252,95 +272,124 @@
             </div>
           </div>
         `
-        )
-        .join("");
+      )
+      .join("");
 
-      document.querySelectorAll("[data-permission-save]").forEach((button) => {
-        button.addEventListener("click", async () => {
-          const key = button.getAttribute("data-permission-save");
-          const row = button.closest("[data-permission-row]");
-          const payload = {
-            student: row.querySelector('[name="student"]').checked,
-            instructor: row.querySelector('[name="instructor"]').checked,
-            admin: row.querySelector('[name="admin"]').checked,
-          };
-          button.disabled = true;
-          try {
-            await window.Learnly.api(`/api/admin/permissions/${encodeURIComponent(key)}`, { method: "PUT", json: payload });
-            button.textContent = "Saved";
-            setTimeout(() => {
-              button.textContent = "Save";
-              button.disabled = false;
-            }, 800);
-          } catch (error) {
+    document.querySelectorAll("[data-permission-save]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const key = button.getAttribute("data-permission-save");
+        const row = button.closest("[data-permission-row]");
+        const payload = {
+          student: row.querySelector('[name="student"]').checked,
+          instructor: row.querySelector('[name="instructor"]').checked,
+          admin: row.querySelector('[name="admin"]').checked,
+        };
+        button.disabled = true;
+        try {
+          await window.Learnly.api(`/api/admin/permissions/${encodeURIComponent(key)}`, { method: "PUT", json: payload });
+          button.textContent = "Saved";
+          setTimeout(() => {
+            button.textContent = "Save";
             button.disabled = false;
-            alert(error.message || "Unable to update permission");
-          }
+          }, 800);
+        } catch (error) {
+          button.disabled = false;
+          alert(error.message || "Unable to update permission");
+        }
+      });
+    });
+  }
+
+  function bindForms() {
+    document.getElementById("admin-create-user-form")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      setStatus("admin-create-user-status", "", "");
+      try {
+        await window.Learnly.api("/api/admin/users", {
+          method: "POST",
+          json: {
+            name: form.name.value.trim(),
+            email: form.email.value.trim(),
+            password: form.password.value,
+            role: form.role.value,
+          },
         });
-      });
-
-      document.getElementById("admin-create-user-form")?.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const form = event.currentTarget;
-        setStatus("admin-create-user-status", "", "");
-        try {
-          await window.Learnly.api("/api/admin/users", {
-            method: "POST",
-            json: {
-              name: form.name.value.trim(),
-              email: form.email.value.trim(),
-              password: form.password.value,
-              role: form.role.value,
-            },
-          });
-          setStatus("admin-create-user-status", "User created successfully.", "ok");
-          form.reset();
-          await loadUsers();
-        } catch (error) {
-          setStatus("admin-create-user-status", error.message || "Unable to create user", "error");
-        }
-      });
-
-      document.getElementById("admin-user-search")?.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        state.users.q = event.currentTarget.q.value.trim();
-        state.users.role = event.currentTarget.role.value;
-        state.users.page = 1;
+        setStatus("admin-create-user-status", "User created successfully.", "ok");
+        form.reset();
         await loadUsers();
-      });
+      } catch (error) {
+        setStatus("admin-create-user-status", error.message || "Unable to create user", "error");
+      }
+    });
 
-      document.getElementById("admin-course-search")?.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        state.courses.q = event.currentTarget.q.value.trim();
-        state.courses.page = 1;
-        await loadCourses();
-      });
-
-      document.getElementById("admin-log-search")?.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        state.logs.q = event.currentTarget.q.value.trim();
-        state.logs.page = 1;
-        await loadLogs();
-      });
-
-      document.getElementById("admin-announcement-form")?.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const form = event.currentTarget;
-        setStatus("admin-announcement-status", "", "");
-        try {
-          await window.Learnly.api("/api/announcements", {
-            method: "POST",
-            json: { audience: form.audience.value, title: form.title.value.trim(), body: form.body.value.trim() },
-          });
-          setStatus("admin-announcement-status", "Announcement sent.", "ok");
-        } catch (error) {
-          setStatus("admin-announcement-status", error.message || "Unable to send announcement", "error");
-        }
-      });
-
+    document.getElementById("admin-user-search")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      state.users.q = event.currentTarget.q.value.trim();
+      state.users.role = event.currentTarget.role.value;
+      state.users.page = 1;
       await loadUsers();
+    });
+
+    document.getElementById("admin-course-search")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      state.courses.q = event.currentTarget.q.value.trim();
+      state.courses.page = 1;
       await loadCourses();
+    });
+
+    document.getElementById("admin-log-search")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      state.logs.q = event.currentTarget.q.value.trim();
+      state.logs.page = 1;
       await loadLogs();
+    });
+
+    document.getElementById("admin-announcement-form")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      setStatus("admin-announcement-status", "", "");
+      try {
+        await window.Learnly.api("/api/announcements", {
+          method: "POST",
+          json: { audience: form.audience.value, title: form.title.value.trim(), body: form.body.value.trim() },
+        });
+        setStatus("admin-announcement-status", "Announcement sent.", "ok");
+      } catch (error) {
+        setStatus("admin-announcement-status", error.message || "Unable to send announcement", "error");
+      }
+    });
+  }
+
+  async function init() {
+    try {
+      const me = await window.Learnly.api("/api/dashboard/me");
+      if (me.role !== "admin") {
+        if (me.role === "student") window.location.replace("/student-dashboard.html");
+        if (me.role === "instructor") window.location.replace("/instructor-dashboard.html");
+        return;
+      }
+
+      const currentPage = pages.find((page) => page.id === section) || pages[0];
+      const content = {
+        overview: () => renderOverview(me.dashboard),
+        users: () => renderUsers(me.dashboard),
+        courses: () => renderCoursesPage(),
+        permissions: () => renderPermissions(me.dashboard),
+        audit: () => renderAudit(me.dashboard),
+      }[section];
+
+      renderLayout(app, me.profile, pages, content(), {
+        activeId: currentPage.id,
+        pageTitle: currentPage.title,
+        pageDescription: currentPage.description,
+      });
+
+      bindForms();
+      if (section === "users") await loadUsers();
+      if (section === "courses") await loadCourses();
+      if (section === "permissions") bindPermissions(me.dashboard.permissions);
+      if (section === "audit") await loadLogs();
     } catch (error) {
       app.innerHTML = `<div class="page"><div class="card"><h2>Unable to load dashboard</h2><p class="muted">${escapeHtml(
         error.message || "Please sign in again."

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Learnly — Get started</title>
+    <title>Learnly - Get started</title>
     <style>
       *, *::before, *::after { box-sizing: border-box; }
       body {
@@ -61,7 +61,7 @@
     <div class="card">
       <h1 style="margin: 0 0 12px">Get started</h1>
       <p class="muted" style="margin: 0 0 18px">
-        Create an account. This posts to <code>POST /api/auth/register</code> on this server.
+        Create an LMS account to access courses, assignments, quizzes, and discussion forums.
       </p>
 
       <form id="signup-form">
@@ -69,17 +69,21 @@
         <input id="name" name="name" autocomplete="name" required />
 
         <label for="email">Email</label>
-        <input id="email" name="email" type="email" autocomplete="email" required />
+        <input id="email" name="email" type="email" autocomplete="email" placeholder="name@example.com" required />
 
         <div class="row">
           <div>
             <label for="password">Password</label>
             <input id="password" name="password" type="password" autocomplete="new-password" required />
+            <div class="muted" style="margin-top: 6px; font-size: 12px;">
+              Use at least 8 characters with uppercase, lowercase, number, and special character.
+            </div>
           </div>
           <div>
             <label for="role">Role</label>
             <select id="role" name="role" required>
               <option value="student" selected>student</option>
+              <option value="faculty">faculty</option>
               <option value="instructor">instructor</option>
             </select>
           </div>
@@ -92,41 +96,12 @@
       <p class="muted" style="margin: 16px 0 0">
         Already have an account? <a href="/signin.html">Sign in</a>
       </p>
-      <p style="margin: 16px 0 0"><a href="/">← Back to home</a></p>
+      <p class="muted" style="margin: 8px 0 0">
+        Need help later? <a href="/forgot-password.html">Forgot password</a>
+      </p>
+      <p style="margin: 16px 0 0"><a href="/">Back to home</a></p>
     </div>
 
     <script src="/auth.js"></script>
-    <script>
-      const { $, setStatus, apiPostJson } = window.LearnlyAuth;
-
-      $("#signup-form").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        setStatus("", "");
-
-        const submit = $("#submit");
-        submit.disabled = true;
-        submit.textContent = "Creating…";
-
-        const payload = {
-          name: $("#name").value.trim(),
-          email: $("#email").value.trim().toLowerCase(),
-          password: $("#password").value,
-          role: $("#role").value,
-        };
-
-        try {
-          await apiPostJson("/api/auth/register", payload);
-          setStatus("Account created. Redirecting to sign in…", "ok");
-          setTimeout(() => {
-            window.location.href = "/signin.html";
-          }, 700);
-        } catch (err) {
-          setStatus(err.message || "Signup failed", "error");
-        } finally {
-          submit.disabled = false;
-          submit.textContent = "Create account";
-        }
-      });
-    </script>
   </body>
 </html>

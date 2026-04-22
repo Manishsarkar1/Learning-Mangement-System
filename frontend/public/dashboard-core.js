@@ -52,12 +52,12 @@
     `;
   }
 
-  function topbar(profile) {
+  function topbar(profile, pageTitle, pageDescription) {
     return `
       <div class="topbar">
         <div>
-          <h1>${escapeHtml(profile.name)}</h1>
-          <p>${escapeHtml(profile.title || profile.role)}${profile.timezone ? ` · ${escapeHtml(profile.timezone)}` : ""}</p>
+          <h1>${escapeHtml(pageTitle || profile.name)}</h1>
+          <p>${escapeHtml(pageDescription || profile.title || profile.role)}${profile.timezone ? ` | ${escapeHtml(profile.timezone)}` : ""}</p>
         </div>
         <div class="topbar-actions">
           <a class="btn-secondary" href="/profile.html">Profile</a>
@@ -67,7 +67,7 @@
     `;
   }
 
-  function sidebar(profile, links) {
+  function sidebar(profile, links, activeId) {
     return `
       <aside class="sidebar">
         <div class="brand">Learnly <small>${escapeHtml(profile.role)}</small></div>
@@ -76,7 +76,12 @@
           <span>${escapeHtml(profile.email)}</span>
         </div>
         <div class="nav-title">Navigate</div>
-        ${links.map((link) => `<a class="nav-link" href="#${link.id}">${escapeHtml(link.label)}</a>`).join("")}
+        ${links
+          .map(
+            (link) =>
+              `<a class="nav-link${link.id === activeId ? " active" : ""}" href="${escapeHtml(link.href || `#${link.id}`)}">${escapeHtml(link.label)}</a>`
+          )
+          .join("")}
         <div class="nav-title">Quick links</div>
         <a class="nav-link" href="/course.html">Open course page</a>
         <a class="nav-link" href="/profile.html">Profile settings</a>
@@ -84,12 +89,12 @@
     `;
   }
 
-  function renderLayout(app, profile, links, contentMarkup) {
+  function renderLayout(app, profile, links, contentMarkup, options = {}) {
     app.innerHTML = `
       <div class="shell">
-        ${sidebar(profile, links)}
+        ${sidebar(profile, links, options.activeId)}
         <main class="main">
-          ${topbar(profile)}
+          ${topbar(profile, options.pageTitle, options.pageDescription)}
           ${contentMarkup}
         </main>
       </div>
