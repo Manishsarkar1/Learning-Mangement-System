@@ -10,7 +10,7 @@ It supports three roles:
 - Instructor
 - Admin
 
-## Features
+## Features...
 
 - Role-based dashboards and permissions
 - Course browsing, enrollment, and course materials
